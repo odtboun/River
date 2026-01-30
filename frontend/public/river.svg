@@ -1,11 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <defs>
-    <linearGradient id="riverGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
-    </linearGradient>
-  </defs>
-  <circle cx="50" cy="50" r="45" fill="url(#riverGradient)"/>
+  <circle cx="50" cy="50" r="45" fill="#0a0a0a"/>
   <path d="M25 50 Q35 35, 50 35 T75 50 Q65 65, 50 65 T25 50" 
         fill="none" 
         stroke="white" 

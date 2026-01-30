@@ -1,207 +1,165 @@
-import { useState, useCallback } from 'react';
-import { RoleCard } from './components/RoleCard';
-import { ResultSection } from './components/ResultSection';
-import { useProofGeneration } from './lib/useProofGeneration';
-import { useSolanaVerification } from './lib/useSolanaVerification';
+import { useState, useEffect, useCallback } from 'react';
+import { EmployerFlow } from './components/EmployerFlow';
+import { CandidateFlow } from './components/CandidateFlow';
+import { LandingPage } from './components/LandingPage';
 
-type Role = 'employer' | 'candidate';
-type VerificationStatus = 'idle' | 'generating' | 'submitting' | 'success' | 'failure';
+type View = 'landing' | 'employer' | 'candidate';
 
-interface RoleData {
-  value: string;
-  isReady: boolean;
+interface NegotiationData {
+  id: string;
+  employerMax: number | null;
+  candidateMin: number | null;
+  status: 'pending_employer' | 'pending_candidate' | 'complete';
+  result: boolean | null;
+}
+
+// Simple in-memory storage for demo (would be backend in production)
+const negotiations = new Map<string, NegotiationData>();
+
+function generateId(): string {
+  return Math.random().toString(36).substring(2, 10);
 }
 
 function App() {
-  const [employerData, setEmployerData] = useState<RoleData>({ value: '', isReady: false });
-  const [candidateData, setCandidateData] = useState<RoleData>({ value: '', isReady: false });
-  const [status, setStatus] = useState<VerificationStatus>('idle');
-  const [result, setResult] = useState<boolean | null>(null);
-  const [logs, setLogs] = useState<Array<{ time: string; message: string; type: 'info' | 'success' | 'error' }>>([]);
-  const [txSignature, setTxSignature] = useState<string | null>(null);
+  const [view, setView] = useState<View>('landing');
+  const [negotiationId, setNegotiationId] = useState<string | null>(null);
+  const [negotiation, setNegotiation] = useState<NegotiationData | null>(null);
 
-  const { generateProof, isReady: proofSystemReady } = useProofGeneration();
-  const { verifyOnChain, isConnected } = useSolanaVerification();
-
-  const addLog = useCallback((message: string, type: 'info' | 'success' | 'error' = 'info') => {
-    const time = new Date().toLocaleTimeString('en-US', { hour12: false });
-    setLogs(prev => [...prev, { time, message, type }]);
+  // Check URL for negotiation ID on load
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('n');
+    if (id) {
+      const existing = negotiations.get(id);
+      if (existing) {
+        setNegotiationId(id);
+        setNegotiation(existing);
+        setView('candidate');
+      } else {
+        // Create placeholder for this negotiation
+        const newNegotiation: NegotiationData = {
+          id,
+          employerMax: null,
+          candidateMin: null,
+          status: 'pending_employer',
+          result: null,
+        };
+        negotiations.set(id, newNegotiation);
+        setNegotiationId(id);
+        setNegotiation(newNegotiation);
+        setView('candidate');
+      }
+    }
   }, []);
 
-  const handleValueChange = (role: Role, value: string) => {
-    const numValue = parseInt(value) || 0;
-    const data = { value, isReady: numValue > 0 };
+  const handleStartEmployer = useCallback(() => {
+    const id = generateId();
+    const newNegotiation: NegotiationData = {
+      id,
+      employerMax: null,
+      candidateMin: null,
+      status: 'pending_employer',
+      result: null,
+    };
+    negotiations.set(id, newNegotiation);
+    setNegotiationId(id);
+    setNegotiation(newNegotiation);
+    setView('employer');
+  }, []);
+
+  const handleEmployerSubmit = useCallback((maxBudget: number) => {
+    if (!negotiationId || !negotiation) return;
     
-    if (role === 'employer') {
-      setEmployerData(data);
-    } else {
-      setCandidateData(data);
-    }
-  };
+    const updated: NegotiationData = {
+      ...negotiation,
+      employerMax: maxBudget,
+      status: 'pending_candidate',
+    };
+    negotiations.set(negotiationId, updated);
+    setNegotiation(updated);
+  }, [negotiationId, negotiation]);
 
-  const handleLockIn = (role: Role) => {
-    if (role === 'employer') {
-      setEmployerData(prev => ({ ...prev, isReady: true }));
-      addLog(`Employer locked in their maximum budget`, 'success');
-    } else {
-      setCandidateData(prev => ({ ...prev, isReady: true }));
-      addLog(`Candidate locked in their minimum requirement`, 'success');
-    }
-  };
-
-  const canVerify = employerData.isReady && candidateData.isReady && status === 'idle';
-
-  const handleVerify = async () => {
-    if (!canVerify) return;
-
-    const employerMax = parseInt(employerData.value);
-    const candidateMin = parseInt(candidateData.value);
-
-    setStatus('generating');
-    setResult(null);
-    setTxSignature(null);
-    setLogs([]);
+  const handleCandidateSubmit = useCallback((minSalary: number) => {
+    if (!negotiationId || !negotiation || negotiation.employerMax === null) return;
     
-    addLog('Starting double-blind verification...', 'info');
-    addLog(`Both parties have locked in their values (hidden)`, 'info');
+    const result = minSalary <= negotiation.employerMax;
+    const updated: NegotiationData = {
+      ...negotiation,
+      candidateMin: minSalary,
+      status: 'complete',
+      result,
+    };
+    negotiations.set(negotiationId, updated);
+    setNegotiation(updated);
+  }, [negotiationId, negotiation]);
 
-    try {
-      // Step 1: Generate ZK proof
-      addLog('Generating zero-knowledge proof...', 'info');
-      const { proof, publicWitness, expectedResult } = await generateProof(employerMax, candidateMin);
-      addLog('Proof generated successfully', 'success');
-      addLog(`Public output: ${expectedResult ? 'MATCH' : 'NO MATCH'}`, 'info');
+  const handleReset = useCallback(() => {
+    setView('landing');
+    setNegotiationId(null);
+    setNegotiation(null);
+    window.history.replaceState({}, '', window.location.pathname);
+  }, []);
 
-      // Step 2: Submit to Solana for verification
-      setStatus('submitting');
-      addLog('Submitting proof to Solana Devnet...', 'info');
-      
-      const { signature, verified } = await verifyOnChain(proof, publicWitness);
-      
-      if (verified) {
-        setTxSignature(signature);
-        setResult(expectedResult);
-        setStatus('success');
-        addLog(`Transaction confirmed: ${signature.slice(0, 16)}...`, 'success');
-        addLog(expectedResult ? 'MATCH FOUND - There is overlap in salary expectations!' : 'NO MATCH - Salary expectations do not overlap', 
-          expectedResult ? 'success' : 'info');
-      } else {
-        throw new Error('Proof verification failed on-chain');
-      }
-    } catch (error) {
-      setStatus('failure');
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      addLog(`Error: ${errorMessage}`, 'error');
-      
-      // For demo purposes, show the expected result anyway
-      const expectedResult = candidateMin <= employerMax;
-      setResult(expectedResult);
-      addLog(`Demo mode: Showing expected result based on inputs`, 'info');
-    }
-  };
-
-  const handleReset = () => {
-    setEmployerData({ value: '', isReady: false });
-    setCandidateData({ value: '', isReady: false });
-    setStatus('idle');
-    setResult(null);
-    setTxSignature(null);
-    setLogs([]);
-  };
+  const shareUrl = negotiationId 
+    ? `${window.location.origin}${window.location.pathname}?n=${negotiationId}`
+    : null;
 
   return (
     <div className="app">
       <header className="header">
         <div className="header-content">
-          <div className="logo">
+          <a href="/" onClick={(e) => { e.preventDefault(); handleReset(); }} className="logo">
             <img src="/river.svg" alt="River" className="logo-icon" />
             <span className="logo-text">River</span>
-          </div>
+          </a>
           <div className="network-badge">
+            <span className="network-dot"></span>
             Solana Devnet
           </div>
         </div>
       </header>
 
       <main className="main">
-        <section className="hero">
-          <h1>Double-Blind Salary Negotiation</h1>
-          <p>
-            Find out if your salary expectations match without revealing your actual numbers.
-            Powered by Zero-Knowledge Proofs on Solana.
-          </p>
-        </section>
-
-        <div className="cards-grid">
-          <RoleCard
-            role="employer"
-            title="Employer"
-            subtitle="Set your maximum budget"
-            icon="🏢"
-            value={employerData.value}
-            isReady={employerData.isReady}
-            onValueChange={(value) => handleValueChange('employer', value)}
-            onLockIn={() => handleLockIn('employer')}
-            disabled={status !== 'idle'}
+        {view === 'landing' && (
+          <LandingPage 
+            onStartEmployer={handleStartEmployer}
+            onStartCandidate={() => setView('candidate')}
           />
-          <RoleCard
-            role="candidate"
-            title="Candidate"
-            subtitle="Set your minimum requirement"
-            icon="👤"
-            value={candidateData.value}
-            isReady={candidateData.isReady}
-            onValueChange={(value) => handleValueChange('candidate', value)}
-            onLockIn={() => handleLockIn('candidate')}
-            disabled={status !== 'idle'}
+        )}
+        
+        {view === 'employer' && negotiation && (
+          <EmployerFlow
+            negotiation={negotiation}
+            shareUrl={shareUrl}
+            onSubmit={handleEmployerSubmit}
+            onReset={handleReset}
           />
-        </div>
-
-        <ResultSection
-          status={status}
-          result={result}
-          logs={logs}
-          txSignature={txSignature}
-          canVerify={canVerify}
-          onVerify={handleVerify}
-          onReset={handleReset}
-          proofSystemReady={proofSystemReady}
-          isConnected={isConnected}
-        />
+        )}
+        
+        {view === 'candidate' && (
+          <CandidateFlow
+            negotiation={negotiation}
+            onSubmit={handleCandidateSubmit}
+            onReset={handleReset}
+          />
+        )}
       </main>
 
       <footer className="footer">
-        <div className="footer-content">
-          <div className="footer-links">
-            <a 
-              href="https://github.com/reilabs/sunspot" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="footer-link"
-            >
-              Sunspot
-            </a>
-            <a 
-              href="https://noir-lang.org" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="footer-link"
-            >
-              Noir
-            </a>
-            <a 
-              href="https://solana.com" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="footer-link"
-            >
-              Solana
-            </a>
-          </div>
-          <p className="footer-text">
-            Built with Zero-Knowledge Proofs. Your salary expectations never leave your device.
-          </p>
+        <div className="footer-links">
+          <a href="https://noir-lang.org" target="_blank" rel="noopener noreferrer" className="footer-link">
+            Noir
+          </a>
+          <a href="https://solana.com" target="_blank" rel="noopener noreferrer" className="footer-link">
+            Solana
+          </a>
+          <a href="https://github.com/reilabs/sunspot" target="_blank" rel="noopener noreferrer" className="footer-link">
+            Sunspot
+          </a>
         </div>
+        <p className="footer-text">
+          Zero-knowledge salary negotiation. Your numbers stay private.
+        </p>
       </footer>
     </div>
   );
