@@ -1,0 +1,56 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+*.so
+target/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Keypairs and secrets (NEVER commit these)
+keypair/
+*.json
+!package.json
+!package-lock.json
+!tsconfig*.json
+!Nargo.toml
+!circuits/*/Prover.toml
+
+# Noir artifacts (can be regenerated)
+circuits/*/artifacts/
+circuits/*/output/
+*.ccs
+*.pk
+*.vk
+*.proof
+*.pw
+*.gz
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Misc
+*.log
+*.tmp
+*.temp

@@ -1,0 +1,7 @@
+[package]
+name = "salary_match"
+type = "bin"
+authors = ["River Team"]
+compiler_version = ">=1.0.0-beta.13"
+
+[dependencies]
