@@ -14,56 +14,50 @@ export const TEE_VALIDATOR = new PublicKey('FnE6VJT5QNZdedZPnCoLsARgBwoE6DeJNjBs
 // Standard Solana Devnet RPC
 export const RPC_ENDPOINT = 'https://api.devnet.solana.com';
 
-// IDL for the River program (Anchor 0.30+ format)
+// IDL for the River program (Anchor 0.29 format - matches deployed program)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const IDL: any = {
   version: '0.1.0',
   name: 'river',
-  address: 'HaUJ1uQtgZi8x822pkGFNtVHXaFbGKd2JKGBRS4q5ZvR',
   instructions: [
     {
       name: 'createNegotiation',
-      discriminator: [0, 0, 0, 0, 0, 0, 0, 0],
       accounts: [
-        { name: 'negotiation', writable: true, pda: { seeds: [{ kind: 'const', value: [110, 101, 103, 111, 116, 105, 97, 116, 105, 111, 110] }, { kind: 'arg', path: 'negotiationId' }] } },
-        { name: 'employer', writable: true, signer: true },
-        { name: 'systemProgram', address: '11111111111111111111111111111111' },
+        { name: 'negotiation', isMut: true, isSigner: false },
+        { name: 'employer', isMut: true, isSigner: true },
+        { name: 'systemProgram', isMut: false, isSigner: false },
       ],
       args: [{ name: 'negotiationId', type: 'u64' }],
     },
     {
       name: 'joinNegotiation',
-      discriminator: [0, 0, 0, 0, 0, 0, 0, 1],
       accounts: [
-        { name: 'negotiation', writable: true },
-        { name: 'candidate', writable: true, signer: true },
+        { name: 'negotiation', isMut: true, isSigner: false },
+        { name: 'candidate', isMut: true, isSigner: true },
       ],
       args: [],
     },
     {
       name: 'submitEmployerBudget',
-      discriminator: [0, 0, 0, 0, 0, 0, 0, 2],
       accounts: [
-        { name: 'negotiation', writable: true },
-        { name: 'employer', signer: true },
+        { name: 'negotiation', isMut: true, isSigner: false },
+        { name: 'employer', isMut: false, isSigner: true },
       ],
       args: [{ name: 'maxBudget', type: 'u64' }],
     },
     {
       name: 'submitCandidateRequirement',
-      discriminator: [0, 0, 0, 0, 0, 0, 0, 3],
       accounts: [
-        { name: 'negotiation', writable: true },
-        { name: 'candidate', signer: true },
+        { name: 'negotiation', isMut: true, isSigner: false },
+        { name: 'candidate', isMut: false, isSigner: true },
       ],
       args: [{ name: 'minSalary', type: 'u64' }],
     },
     {
       name: 'finalizeNegotiation',
-      discriminator: [0, 0, 0, 0, 0, 0, 0, 4],
       accounts: [
-        { name: 'negotiation', writable: true },
-        { name: 'payer', writable: true, signer: true },
+        { name: 'negotiation', isMut: true, isSigner: false },
+        { name: 'payer', isMut: true, isSigner: true },
       ],
       args: [],
     },
@@ -71,25 +65,21 @@ const IDL: any = {
   accounts: [
     {
       name: 'Negotiation',
-      discriminator: [0, 0, 0, 0, 0, 0, 0, 0],
-    },
-  ],
-  types: [
-    {
-      name: 'Negotiation',
       type: {
         kind: 'struct',
         fields: [
           { name: 'id', type: 'u64' },
-          { name: 'employer', type: 'pubkey' },
-          { name: 'candidate', type: { option: 'pubkey' } },
+          { name: 'employer', type: 'publicKey' },
+          { name: 'candidate', type: { option: 'publicKey' } },
           { name: 'employerMax', type: { option: 'u64' } },
           { name: 'candidateMin', type: { option: 'u64' } },
-          { name: 'status', type: { defined: { name: 'NegotiationStatus' } } },
-          { name: 'result', type: { defined: { name: 'MatchResult' } } },
+          { name: 'status', type: { defined: 'NegotiationStatus' } },
+          { name: 'result', type: { defined: 'MatchResult' } },
         ],
       },
     },
+  ],
+  types: [
     {
       name: 'NegotiationStatus',
       type: {
@@ -108,7 +98,11 @@ const IDL: any = {
       name: 'MatchResult',
       type: {
         kind: 'enum',
-        variants: [{ name: 'Pending' }, { name: 'Match' }, { name: 'NoMatch' }],
+        variants: [
+          { name: 'Pending' },
+          { name: 'Match' },
+          { name: 'NoMatch' },
+        ],
       },
     },
   ],
@@ -119,6 +113,9 @@ const IDL: any = {
     { code: 6003, name: 'AlreadySubmitted', msg: 'Already submitted' },
     { code: 6004, name: 'NotComplete', msg: 'Negotiation not complete' },
   ],
+  metadata: {
+    address: 'HaUJ1uQtgZi8x822pkGFNtVHXaFbGKd2JKGBRS4q5ZvR',
+  },
 };
 
 // On-chain negotiation account data
@@ -192,7 +189,8 @@ export function createProgram(wallet: AnchorWallet, endpoint: string = RPC_ENDPO
   const connection = new Connection(endpoint, 'confirmed');
   const provider = new AnchorProvider(connection, wallet, { commitment: 'confirmed' });
   setProvider(provider);
-  return new Program(IDL, provider);
+  // Anchor 0.29 API: new Program(idl, programId, provider)
+  return new Program(IDL, PROGRAM_ID, provider);
 }
 
 // Generate a random negotiation ID
@@ -268,7 +266,8 @@ export class RiverClient {
         this.wallet,
         { commitment: 'confirmed' }
       );
-      this.teeProgram = new Program(IDL, teeProvider);
+      // Anchor 0.29 API: new Program(idl, programId, provider)
+      this.teeProgram = new Program(IDL, PROGRAM_ID, teeProvider);
       
       console.log('TEE initialized successfully!');
       return true;
@@ -414,7 +413,8 @@ export async function fetchNegotiation(connection: Connection, pda: PublicKey): 
   };
   
   const provider = new AnchorProvider(connection, dummyWallet, { commitment: 'confirmed' });
-  const program = new Program(IDL, provider);
+  // Anchor 0.29 API: new Program(idl, programId, provider)
+  const program = new Program(IDL, PROGRAM_ID, provider);
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
