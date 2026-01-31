@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { ArchitectureDiagram, ProblemSolutionVisual } from '../components/MarketingVisuals';
 
 export function MarketingHome() {
     return (
@@ -129,30 +130,14 @@ export function MarketingHome() {
                     </div>
                 </section>
 
-                {/* Problem / Solution Grid */}
+                {/* Problem / Solution Visuals */}
                 <section style={{ background: '#f9fafb', padding: '6rem 1.5rem', borderTop: '1px solid #e5e7eb', borderBottom: '1px solid #e5e7eb' }}>
-                    <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '4rem' }}>
-                        <div>
-                            <h3 style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#dc2626', marginBottom: '1rem' }}>The Problem</h3>
-                            <h2 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '1rem', letterSpacing: '-0.025em' }}>Information Asymmetry</h2>
-                            <p style={{ color: '#4b5563', lineHeight: 1.6 }}>
-                                In traditional negotiation, the first person to say a number often loses leverage.
-                                Employers know their budget limits, while candidates know their minimums—but neither side wants to reveal their hand, leading to inefficiency and mistrust.
-                            </p>
-                        </div>
-                        <div>
-                            <h3 style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#10b981', marginBottom: '1rem' }}>The Solution</h3>
-                            <h2 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '1rem', letterSpacing: '-0.025em' }}>Double-Blind Matching</h2>
-                            <p style={{ color: '#4b5563', lineHeight: 1.6 }}>
-                                River acts as a neutral, cryptographic third party. Both sides submit their numbers privately.
-                                Our secure enclave compares them and only reveals a "Match" or "No Match" result.
-                                If there's no match, neither side learns the other's number.
-                            </p>
-                        </div>
+                    <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+                        <ProblemSolutionVisual />
                     </div>
                 </section>
 
-                {/* Architecture & Tech */}
+                {/* Architecture Visuals */}
                 <section style={{ padding: '6rem 1.5rem', maxWidth: '1000px', margin: '0 auto', width: '100%' }}>
                     <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
                         <h2 style={{ fontSize: '2.5rem', fontWeight: 700, marginBottom: '1rem', letterSpacing: '-0.025em' }}>How It Works</h2>
@@ -161,37 +146,8 @@ export function MarketingHome() {
                         </p>
                     </div>
 
-                    <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                        gap: '2rem'
-                    }}>
-                        <div style={{ padding: '2rem', borderRadius: '12px', border: '1px solid #e5e7eb', background: '#fff' }}>
-                            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔐</div>
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>Intel TDX Enclaves</h3>
-                            <p style={{ color: '#4b5563', fontSize: '0.9375rem', lineHeight: 1.6 }}>
-                                Computation happens inside a hardware-isolated Trusted Execution Environment (TEE).
-                                The memory is encrypted at the CPU level, ensuring raw data is invisible even to the server operator.
-                            </p>
-                        </div>
-
-                        <div style={{ padding: '2rem', borderRadius: '12px', border: '1px solid #e5e7eb', background: '#fff' }}>
-                            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🚀</div>
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>MagicBlock PER</h3>
-                            <p style={{ color: '#4b5563', fontSize: '0.9375rem', lineHeight: 1.6 }}>
-                                Utilizing Private Ephemeral Rollups allows us to perform high-speed,
-                                gas-free negotiation steps off-chain while maintaining cryptographic integrity.
-                            </p>
-                        </div>
-
-                        <div style={{ padding: '2rem', borderRadius: '12px', border: '1px solid #e5e7eb', background: '#fff' }}>
-                            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⚓️</div>
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>Solana Settlement</h3>
-                            <p style={{ color: '#4b5563', fontSize: '0.9375rem', lineHeight: 1.6 }}>
-                                Once the negotiation concludes, only the final boolean result (Match/No Match)
-                                is committed back to the Solana mainnet for permanent, verifiable record-keeping.
-                            </p>
-                        </div>
+                    <div style={{ marginTop: '2rem' }}>
+                        <ArchitectureDiagram />
                     </div>
                 </section>
             </main>
