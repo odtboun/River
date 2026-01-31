@@ -65,7 +65,14 @@ export function MarketingHome() {
 
             {/* Hero Section */}
             <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <section style={{ position: 'relative', overflow: 'hidden' }}>
+                <section style={{
+                    position: 'relative',
+                    overflow: 'hidden',
+                    minHeight: '85vh',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center'
+                }}>
                     {/* Background Image */}
                     <div style={{
                         position: 'absolute',
