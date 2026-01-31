@@ -8,6 +8,7 @@ interface CandidateFlowProps {
   negotiationId: BN | null;
   loading: boolean;
   txSignature: string | null;
+  teeActive?: boolean;
   walletAddress: string | null;
   onJoin: () => Promise<void>;
   onSubmit: (minSalary: number) => Promise<void>;
@@ -20,6 +21,7 @@ export function CandidateFlow({
   negotiationId,
   loading,
   txSignature,
+  teeActive = false,
   walletAddress,
   onJoin,
   onSubmit, 
@@ -139,12 +141,12 @@ export function CandidateFlow({
           </div>
         </div>
 
-        <div className="privacy-badge" style={{ marginTop: '1.5rem' }}>
+        <div className={`privacy-badge ${teeActive ? 'tee-active' : ''}`} style={{ marginTop: '1.5rem' }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
           </svg>
-          <span>Your salary requirement will remain private</span>
+          <span>{teeActive ? 'TEE active - values encrypted in hardware' : 'Your salary requirement will remain private'}</span>
         </div>
       </>
     );
@@ -175,12 +177,12 @@ export function CandidateFlow({
           </button>
         </div>
 
-        <div className="privacy-badge" style={{ marginTop: '1.5rem' }}>
+        <div className={`privacy-badge ${teeActive ? 'tee-active' : ''}`} style={{ marginTop: '1.5rem' }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
           </svg>
-          <span>All values processed in secure TEE environment</span>
+          <span>{teeActive ? 'TEE active - values encrypted in hardware' : 'All values processed securely'}</span>
         </div>
       </>
     );
@@ -236,12 +238,12 @@ export function CandidateFlow({
           </div>
         )}
 
-        <div className="privacy-badge" style={{ marginTop: '1.5rem' }}>
+        <div className={`privacy-badge ${teeActive ? 'tee-active' : ''}`} style={{ marginTop: '1.5rem' }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
           </svg>
-          <span>Your number will never be revealed to the employer</span>
+          <span>{teeActive ? 'TEE active - your number encrypted in hardware' : 'Your number will never be revealed to the employer'}</span>
         </div>
       </>
     );

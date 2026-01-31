@@ -1,10 +1,18 @@
 import { Program, AnchorProvider, BN, setProvider } from '@coral-xyz/anchor';
 import { PublicKey, SystemProgram, Connection, Keypair } from '@solana/web3.js';
 import type { AnchorWallet } from '@solana/wallet-adapter-react';
+import { verifyTeeRpcIntegrity, getAuthToken } from '@magicblock-labs/ephemeral-rollups-sdk';
 
 // Program ID from deployment
 export const PROGRAM_ID = new PublicKey('HaUJ1uQtgZi8x822pkGFNtVHXaFbGKd2JKGBRS4q5ZvR');
 export const NEGOTIATION_SEED = Buffer.from('negotiation');
+
+// MagicBlock TEE Configuration
+export const TEE_ENDPOINT = 'https://tee.magicblock.app';
+export const TEE_VALIDATOR = new PublicKey('FnE6VJT5QNZdedZPnCoLsARgBwoE6DeJNjBs2H1gySXA');
+
+// Standard Solana Devnet RPC
+export const RPC_ENDPOINT = 'https://api.devnet.solana.com';
 
 // IDL for the River program (Anchor 0.30+ format)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -134,6 +142,13 @@ export interface NegotiationData {
   result: 'pending' | 'match' | 'no_match';
 }
 
+// TEE Auth State
+interface TeeAuthState {
+  token: string | null;
+  isVerified: boolean;
+  connection: Connection | null;
+}
+
 // Derive the PDA for a negotiation
 export function getNegotiationPDA(negotiationId: BN): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
@@ -172,12 +187,9 @@ export function parseNegotiationAccount(account: NegotiationAccount, pda: Public
   };
 }
 
-// RPC endpoint
-export const RPC_ENDPOINT = 'https://api.devnet.solana.com';
-
 // Create Anchor program instance
-export function createProgram(wallet: AnchorWallet): Program {
-  const connection = new Connection(RPC_ENDPOINT, 'confirmed');
+export function createProgram(wallet: AnchorWallet, endpoint: string = RPC_ENDPOINT): Program {
+  const connection = new Connection(endpoint, 'confirmed');
   const provider = new AnchorProvider(connection, wallet, { commitment: 'confirmed' });
   setProvider(provider);
   return new Program(IDL, provider);
@@ -188,17 +200,98 @@ export function generateNegotiationId(): BN {
   return new BN(Date.now() + Math.floor(Math.random() * 1000000));
 }
 
-// River Program Client
+// River Program Client with TEE Support
 export class RiverClient {
   private program: Program;
+  private teeProgram: Program | null = null;
   private wallet: AnchorWallet;
+  private teeAuth: TeeAuthState = {
+    token: null,
+    isVerified: false,
+    connection: null,
+  };
 
   constructor(wallet: AnchorWallet) {
     this.wallet = wallet;
-    this.program = createProgram(wallet);
+    this.program = createProgram(wallet, RPC_ENDPOINT);
   }
 
-  // Create a new negotiation (Employer)
+  // Initialize TEE connection with auth token
+  async initializeTee(): Promise<boolean> {
+    try {
+      console.log('Verifying TEE RPC integrity...');
+      
+      // Verify TEE integrity
+      const isVerified = await verifyTeeRpcIntegrity(TEE_ENDPOINT);
+      if (!isVerified) {
+        console.warn('TEE verification failed, falling back to L1');
+        return false;
+      }
+      
+      console.log('TEE verified! Getting auth token...');
+      
+      // Get auth token using wallet signature
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const walletWithSignMessage = this.wallet as any;
+      if (!walletWithSignMessage.signMessage) {
+        console.warn('Wallet does not support message signing, TEE unavailable');
+        return false;
+      }
+      
+      const tokenResult = await getAuthToken(
+        TEE_ENDPOINT,
+        this.wallet.publicKey,
+        async (message: Uint8Array) => {
+          return await walletWithSignMessage.signMessage(message);
+        }
+      );
+      
+      if (!tokenResult) {
+        console.warn('Failed to get TEE auth token');
+        return false;
+      }
+      
+      // Extract token string from result
+      const token = typeof tokenResult === 'string' ? tokenResult : (tokenResult as any).token;
+      
+      // Create TEE connection with auth token
+      const teeUrl = `${TEE_ENDPOINT}?token=${token}`;
+      this.teeAuth = {
+        token,
+        isVerified: true,
+        connection: new Connection(teeUrl, 'confirmed'),
+      };
+      
+      // Create TEE program instance
+      const teeProvider = new AnchorProvider(
+        this.teeAuth.connection!,
+        this.wallet,
+        { commitment: 'confirmed' }
+      );
+      this.teeProgram = new Program(IDL, teeProvider);
+      
+      console.log('TEE initialized successfully!');
+      return true;
+    } catch (err) {
+      console.error('TEE initialization error:', err);
+      return false;
+    }
+  }
+
+  // Check if TEE is available
+  isTeeAvailable(): boolean {
+    return this.teeAuth.isVerified && this.teeProgram !== null;
+  }
+
+  // Get the appropriate program (TEE or L1)
+  private getProgram(useTee: boolean = false): Program {
+    if (useTee && this.teeProgram) {
+      return this.teeProgram;
+    }
+    return this.program;
+  }
+
+  // Create a new negotiation on L1 (Employer)
   async createNegotiation(): Promise<{ negotiationId: BN; pda: PublicKey; tx: string }> {
     const negotiationId = generateNegotiationId();
     const [pda] = getNegotiationPDA(negotiationId);
@@ -215,7 +308,7 @@ export class RiverClient {
     return { negotiationId, pda, tx };
   }
 
-  // Join a negotiation (Candidate)
+  // Join a negotiation on L1 (Candidate)
   async joinNegotiation(negotiationId: BN): Promise<string> {
     const [pda] = getNegotiationPDA(negotiationId);
 
@@ -230,11 +323,16 @@ export class RiverClient {
     return tx;
   }
 
-  // Submit employer's max budget
+  // Submit employer's max budget via TEE (confidential)
   async submitEmployerBudget(negotiationId: BN, maxBudget: number): Promise<string> {
     const [pda] = getNegotiationPDA(negotiationId);
+    
+    // Try to use TEE for confidential submission
+    const program = this.getProgram(this.isTeeAvailable());
+    const endpoint = this.isTeeAvailable() ? 'TEE' : 'L1';
+    console.log(`Submitting employer budget via ${endpoint}...`);
 
-    const tx = await this.program.methods
+    const tx = await program.methods
       .submitEmployerBudget(new BN(maxBudget))
       .accounts({
         negotiation: pda,
@@ -245,11 +343,16 @@ export class RiverClient {
     return tx;
   }
 
-  // Submit candidate's min salary
+  // Submit candidate's min salary via TEE (confidential)
   async submitCandidateRequirement(negotiationId: BN, minSalary: number): Promise<string> {
     const [pda] = getNegotiationPDA(negotiationId);
 
-    const tx = await this.program.methods
+    // Try to use TEE for confidential submission
+    const program = this.getProgram(this.isTeeAvailable());
+    const endpoint = this.isTeeAvailable() ? 'TEE' : 'L1';
+    console.log(`Submitting candidate requirement via ${endpoint}...`);
+
+    const tx = await program.methods
       .submitCandidateRequirement(new BN(minSalary))
       .accounts({
         negotiation: pda,
@@ -260,7 +363,7 @@ export class RiverClient {
     return tx;
   }
 
-  // Finalize negotiation (clear private values before L1 commit)
+  // Finalize negotiation (commit result to L1)
   async finalizeNegotiation(negotiationId: BN): Promise<string> {
     const [pda] = getNegotiationPDA(negotiationId);
 

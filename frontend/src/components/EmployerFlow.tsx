@@ -9,6 +9,7 @@ interface EmployerFlowProps {
   shareUrl: string | null;
   loading: boolean;
   txSignature: string | null;
+  teeActive?: boolean;
   onCreateNegotiation: () => Promise<void>;
   onSubmit: (maxBudget: number) => Promise<void>;
   onReset: () => void;
@@ -21,6 +22,7 @@ export function EmployerFlow({
   shareUrl, 
   loading,
   txSignature,
+  teeActive = false,
   onCreateNegotiation, 
   onSubmit, 
   onReset 
@@ -89,12 +91,12 @@ export function EmployerFlow({
           </div>
         )}
 
-        <div className="privacy-badge" style={{ marginTop: '1.5rem' }}>
+        <div className={`privacy-badge ${teeActive ? 'tee-active' : ''}`} style={{ marginTop: '1.5rem' }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
           </svg>
-          <span>All values processed in secure TEE environment</span>
+          <span>{teeActive ? 'TEE active - values encrypted in hardware' : 'Connect wallet to enable TEE privacy'}</span>
         </div>
       </>
     );

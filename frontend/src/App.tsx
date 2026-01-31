@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { Connection } from '@solana/web3.js';
@@ -20,6 +20,40 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [txSignature, setTxSignature] = useState<string | null>(null);
+  const [teeStatus, setTeeStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
+  
+  // Keep a persistent RiverClient ref
+  const clientRef = useRef<RiverClient | null>(null);
+
+  // Initialize TEE when wallet connects
+  useEffect(() => {
+    if (connected && wallet.publicKey && !clientRef.current) {
+      const initTee = async () => {
+        setTeeStatus('connecting');
+        try {
+          const client = new RiverClient(wallet as any);
+          clientRef.current = client;
+          
+          // Try to initialize TEE
+          const teeOk = await client.initializeTee();
+          if (teeOk) {
+            setTeeStatus('connected');
+            console.log('TEE connected - transactions will be confidential');
+          } else {
+            setTeeStatus('disconnected');
+            console.log('TEE unavailable - using standard L1');
+          }
+        } catch (err) {
+          console.error('TEE init error:', err);
+          setTeeStatus('error');
+        }
+      };
+      initTee();
+    } else if (!connected) {
+      clientRef.current = null;
+      setTeeStatus('disconnected');
+    }
+  }, [connected, wallet]);
 
   // Check URL for negotiation ID on load
   useEffect(() => {
@@ -78,6 +112,16 @@ function App() {
     setTxSignature(null);
   }, []);
 
+  // Get or create client
+  const getClient = useCallback(() => {
+    if (clientRef.current) return clientRef.current;
+    if (connected && wallet.publicKey) {
+      clientRef.current = new RiverClient(wallet as any);
+      return clientRef.current;
+    }
+    return null;
+  }, [connected, wallet]);
+
   // Handle employer creating negotiation on-chain
   const handleCreateNegotiation = useCallback(async () => {
     if (!connected || !wallet.publicKey) {
@@ -89,7 +133,9 @@ function App() {
     setError(null);
 
     try {
-      const client = new RiverClient(wallet as any);
+      const client = getClient();
+      if (!client) throw new Error('Client not initialized');
+      
       const { negotiationId: newId, tx } = await client.createNegotiation();
       
       setNegotiationId(newId);
@@ -106,7 +152,7 @@ function App() {
     } finally {
       setLoading(false);
     }
-  }, [connected, wallet, loadNegotiation]);
+  }, [connected, wallet, loadNegotiation, getClient]);
 
   // Handle employer submitting budget
   const handleEmployerSubmit = useCallback(async (maxBudget: number) => {
@@ -119,7 +165,9 @@ function App() {
     setError(null);
 
     try {
-      const client = new RiverClient(wallet as any);
+      const client = getClient();
+      if (!client) throw new Error('Client not initialized');
+      
       const tx = await client.submitEmployerBudget(negotiationId, maxBudget);
       setTxSignature(tx);
       
@@ -131,7 +179,7 @@ function App() {
     } finally {
       setLoading(false);
     }
-  }, [connected, wallet, negotiationId, loadNegotiation]);
+  }, [connected, wallet, negotiationId, loadNegotiation, getClient]);
 
   // Handle candidate joining negotiation
   const handleJoinNegotiation = useCallback(async () => {
@@ -144,7 +192,9 @@ function App() {
     setError(null);
 
     try {
-      const client = new RiverClient(wallet as any);
+      const client = getClient();
+      if (!client) throw new Error('Client not initialized');
+      
       const tx = await client.joinNegotiation(negotiationId);
       setTxSignature(tx);
       
@@ -156,7 +206,7 @@ function App() {
     } finally {
       setLoading(false);
     }
-  }, [connected, wallet, negotiationId, loadNegotiation]);
+  }, [connected, wallet, negotiationId, loadNegotiation, getClient]);
 
   // Handle candidate submitting requirement
   const handleCandidateSubmit = useCallback(async (minSalary: number) => {
@@ -169,7 +219,9 @@ function App() {
     setError(null);
 
     try {
-      const client = new RiverClient(wallet as any);
+      const client = getClient();
+      if (!client) throw new Error('Client not initialized');
+      
       const tx = await client.submitCandidateRequirement(negotiationId, minSalary);
       setTxSignature(tx);
       
@@ -181,7 +233,7 @@ function App() {
     } finally {
       setLoading(false);
     }
-  }, [connected, wallet, negotiationId, loadNegotiation]);
+  }, [connected, wallet, negotiationId, loadNegotiation, getClient]);
 
   // Reset to landing page
   const handleReset = useCallback(() => {
@@ -194,6 +246,22 @@ function App() {
   }, []);
 
   const shareUrl = negotiationId ? getShareUrl(negotiationId) : null;
+
+  // TEE status indicator
+  const getTeeStatusDisplay = () => {
+    switch (teeStatus) {
+      case 'connected':
+        return { text: 'TEE Active', className: 'tee-connected' };
+      case 'connecting':
+        return { text: 'Connecting TEE...', className: 'tee-connecting' };
+      case 'error':
+        return { text: 'TEE Error', className: 'tee-error' };
+      default:
+        return { text: 'TEE Offline', className: 'tee-disconnected' };
+    }
+  };
+
+  const teeDisplay = getTeeStatusDisplay();
 
   return (
     <div className="app">
@@ -208,6 +276,12 @@ function App() {
               <span className="network-dot"></span>
               Solana Devnet
             </div>
+            {connected && (
+              <div className={`tee-badge ${teeDisplay.className}`}>
+                <span className="tee-dot"></span>
+                {teeDisplay.text}
+              </div>
+            )}
             <WalletMultiButton />
           </div>
         </div>
@@ -236,6 +310,7 @@ function App() {
             shareUrl={shareUrl}
             loading={loading}
             txSignature={txSignature}
+            teeActive={teeStatus === 'connected'}
             onCreateNegotiation={handleCreateNegotiation}
             onSubmit={handleEmployerSubmit}
             onReset={handleReset}
@@ -249,6 +324,7 @@ function App() {
             negotiationId={negotiationId}
             loading={loading}
             txSignature={txSignature}
+            teeActive={teeStatus === 'connected'}
             onJoin={handleJoinNegotiation}
             onSubmit={handleCandidateSubmit}
             onReset={handleReset}
@@ -260,7 +336,7 @@ function App() {
       <footer className="footer">
         <div className="footer-links">
           <a href="https://magicblock.gg" target="_blank" rel="noopener noreferrer" className="footer-link">
-            MagicBlock
+            MagicBlock TEE
           </a>
           <a href="https://solana.com" target="_blank" rel="noopener noreferrer" className="footer-link">
             Solana
@@ -270,7 +346,7 @@ function App() {
           </a>
         </div>
         <p className="footer-text">
-          Confidential salary negotiation powered by TEE. Your numbers stay private.
+          Confidential salary negotiation powered by Intel TDX. Your numbers stay private.
         </p>
       </footer>
     </div>

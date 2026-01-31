@@ -5,12 +5,17 @@ declare_id!("HaUJ1uQtgZi8x822pkGFNtVHXaFbGKd2JKGBRS4q5ZvR");
 // Seeds for PDA derivation
 pub const NEGOTIATION_SEED: &[u8] = b"negotiation";
 
+// MagicBlock TEE Validator for Private Ephemeral Rollups (devnet)
+// Transactions to this validator are processed in Intel TDX secure enclave
+pub const TEE_VALIDATOR: &str = "FnE6VJT5QNZdedZPnCoLsARgBwoE6DeJNjBs2H1gySXA";
+pub const TEE_ENDPOINT: &str = "https://tee.magicblock.app";
+
 #[program]
 pub mod river {
     use super::*;
 
-    /// Create a new negotiation session
-    /// Called by the employer on Solana L1
+    /// Create a new negotiation session on Solana L1
+    /// Called by the employer before delegation to TEE
     pub fn create_negotiation(ctx: Context<CreateNegotiation>, negotiation_id: u64) -> Result<()> {
         let negotiation = &mut ctx.accounts.negotiation;
         
@@ -26,8 +31,7 @@ pub mod river {
         Ok(())
     }
 
-    /// Candidate joins the negotiation
-    /// Called on Solana L1 before delegation
+    /// Candidate joins the negotiation on Solana L1
     pub fn join_negotiation(ctx: Context<JoinNegotiation>) -> Result<()> {
         let negotiation = &mut ctx.accounts.negotiation;
         
@@ -45,7 +49,7 @@ pub mod river {
     }
 
     /// Submit employer's maximum budget
-    /// When called via TEE, the value is encrypted in transit and memory
+    /// When called via TEE endpoint, the value is encrypted in transit and memory
     pub fn submit_employer_budget(
         ctx: Context<SubmitBudget>,
         max_budget: u64,
@@ -61,6 +65,7 @@ pub mod river {
             RiverError::AlreadySubmitted
         );
         
+        // Store the budget - only visible inside TEE when called via TEE endpoint
         negotiation.employer_max = Some(max_budget);
         
         // Check if we can determine result
@@ -71,7 +76,7 @@ pub mod river {
     }
 
     /// Submit candidate's minimum salary requirement
-    /// When called via TEE, the value is encrypted in transit and memory
+    /// When called via TEE endpoint, the value is encrypted in transit and memory
     pub fn submit_candidate_requirement(
         ctx: Context<SubmitRequirement>,
         min_salary: u64,
@@ -87,6 +92,7 @@ pub mod river {
             RiverError::AlreadySubmitted
         );
         
+        // Store the requirement - only visible inside TEE when called via TEE endpoint
         negotiation.candidate_min = Some(min_salary);
         
         // Check if we can determine result
@@ -97,7 +103,7 @@ pub mod river {
     }
 
     /// Finalize the negotiation - clear salary values, keep only result
-    /// Called before undelegating from TEE back to L1
+    /// Called to commit final result back to L1
     pub fn finalize_negotiation(ctx: Context<FinalizeNegotiation>) -> Result<()> {
         let negotiation = &mut ctx.accounts.negotiation;
         
@@ -127,6 +133,7 @@ fn check_and_update_result(negotiation: &mut Account<Negotiation>) -> Result<()>
         (negotiation.employer_max, negotiation.candidate_min) 
     {
         // The core comparison - done inside the TEE
+        // Neither party can see the other's value
         if candidate_min <= employer_max {
             negotiation.result = MatchResult::Match;
         } else {

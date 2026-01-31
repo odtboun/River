@@ -600,6 +600,74 @@ body {
   margin-top: 1rem;
 }
 
+.privacy-badge.tee-active {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.privacy-badge.tee-active svg {
+  stroke: #059669;
+}
+
+/* TEE Status Badge */
+.tee-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.tee-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.tee-connected {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.tee-connected .tee-dot {
+  background: #059669;
+}
+
+.tee-connecting {
+  background: #fef9c3;
+  color: #ca8a04;
+}
+
+.tee-connecting .tee-dot {
+  background: #ca8a04;
+  animation: pulse 1.5s infinite;
+}
+
+.tee-disconnected {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-muted);
+}
+
+.tee-disconnected .tee-dot {
+  background: var(--color-text-muted);
+}
+
+.tee-error {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.tee-error .tee-dot {
+  background: #dc2626;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
 /* Footer */
 .footer {
   padding: 1.5rem;
