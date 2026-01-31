@@ -96,7 +96,7 @@ export function CandidateFlow({
   }
 
   // Negotiation exists but employer hasn't submitted budget yet
-  if (negotiation.status === 'created') {
+  if (!negotiation.hasEmployerSubmitted) {
     return (
       <>
         <div className="page-header">
@@ -192,7 +192,7 @@ export function CandidateFlow({
   }
 
   // Ready for candidate input (joined but not submitted)
-  if (hasJoined && negotiation.status !== 'complete' && negotiation.status !== 'finalized') {
+  if (hasJoined && !negotiation.hasCandidateSubmitted && negotiation.status !== 'complete' && negotiation.status !== 'finalized') {
     return (
       <>
         <div className="page-header">

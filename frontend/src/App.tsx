@@ -30,32 +30,32 @@ function App() {
   // Keep a persistent RiverClient ref
   const clientRef = useRef<RiverClient | null>(null);
 
-  // Initialize TEE when wallet connects
+  // Initialize client when wallet connects (TEE is optional/best-effort)
   useEffect(() => {
     if (connected && anchorWallet && !clientRef.current) {
+      // Create client immediately
+      const walletWithSignMessage = {
+        ...anchorWallet,
+        signMessage,
+      };
+      const client = new RiverClient(walletWithSignMessage as any);
+      clientRef.current = client;
+      
+      // Try TEE in background (don't block on it)
       const initTee = async () => {
         setTeeStatus('connecting');
         try {
-          // Create client with sign message capability
-          const walletWithSignMessage = {
-            ...anchorWallet,
-            signMessage,
-          };
-          const client = new RiverClient(walletWithSignMessage as any);
-          clientRef.current = client;
-          
-          // Try to initialize TEE
           const teeOk = await client.initializeTee();
           if (teeOk) {
             setTeeStatus('connected');
             console.log('TEE connected - transactions will be confidential');
           } else {
             setTeeStatus('disconnected');
-            console.log('TEE unavailable - using standard L1');
+            console.log('TEE unavailable - using standard L1 (still works!)');
           }
         } catch (err) {
-          console.error('TEE init error:', err);
-          setTeeStatus('error');
+          console.error('TEE init error (non-blocking):', err);
+          setTeeStatus('disconnected'); // Show as disconnected, not error
         }
       };
       initTee();
@@ -122,9 +122,10 @@ function App() {
     setTxSignature(null);
   }, []);
 
-  // Get or create client
+  // Get client (should already exist if connected)
   const getClient = useCallback(() => {
     if (clientRef.current) return clientRef.current;
+    // Fallback: create if missing
     if (connected && anchorWallet) {
       const walletWithSignMessage = {
         ...anchorWallet,

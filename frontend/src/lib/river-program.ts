@@ -137,6 +137,9 @@ export interface NegotiationData {
   candidate: string | null;
   status: 'created' | 'ready' | 'employer_submitted' | 'candidate_submitted' | 'complete' | 'finalized';
   result: 'pending' | 'match' | 'no_match';
+  // Track submission status (values remain private)
+  hasEmployerSubmitted: boolean;
+  hasCandidateSubmitted: boolean;
 }
 
 // TEE Auth State
@@ -181,6 +184,9 @@ export function parseNegotiationAccount(account: NegotiationAccount, pda: Public
     candidate: account.candidate?.toBase58() || null,
     status: parseStatus(account.status),
     result: parseResult(account.result),
+    // Values remain private - we just track if they've been submitted
+    hasEmployerSubmitted: account.employerMax !== null,
+    hasCandidateSubmitted: account.candidateMin !== null,
   };
 }
 

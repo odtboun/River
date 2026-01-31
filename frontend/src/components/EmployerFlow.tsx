@@ -106,7 +106,10 @@ export function EmployerFlow({
   }
 
   // Step 1: Enter budget (negotiation created but budget not submitted)
-  if (negotiation?.status === 'created' || negotiation?.status === 'ready') {
+  // Use hasEmployerSubmitted flag since status doesn't change on submission
+  const needsBudgetInput = negotiation && !negotiation.hasEmployerSubmitted;
+  
+  if (needsBudgetInput) {
     return (
       <>
         <div className="page-header">
@@ -166,9 +169,14 @@ export function EmployerFlow({
     );
   }
 
-  // Step 2: Share link & wait for candidate
-  if (negotiation?.status === 'employer_submitted' || 
-      (negotiation && !negotiation.candidate && negotiation.status !== 'complete' && negotiation.status !== 'finalized')) {
+  // Step 2: Share link & wait for candidate (employer has submitted, waiting for candidate)
+  const waitingForCandidate = negotiation && 
+    negotiation.hasEmployerSubmitted && 
+    !negotiation.hasCandidateSubmitted &&
+    negotiation.status !== 'complete' && 
+    negotiation.status !== 'finalized';
+  
+  if (waitingForCandidate) {
     return (
       <>
         <div className="page-header">
