@@ -9,7 +9,7 @@ interface NegotiationData {
 }
 
 interface EmployerFlowProps {
-  negotiation: NegotiationData;
+  negotiation: NegotiationData | null;
   shareUrl: string | null;
   onSubmit: (maxBudget: number) => void;
   onReset: () => void;
@@ -45,7 +45,7 @@ export function EmployerFlow({ negotiation, shareUrl, onSubmit, onReset }: Emplo
   };
 
   // Step 1: Enter budget
-  if (negotiation.status === 'pending_employer') {
+  if (!negotiation || negotiation.status === 'pending_employer') {
     return (
       <>
         <div className="page-header">

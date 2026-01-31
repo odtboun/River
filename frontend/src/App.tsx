@@ -13,74 +13,85 @@ interface NegotiationData {
   result: boolean | null;
 }
 
-// Simple in-memory storage for demo (would be backend in production)
-const negotiations = new Map<string, NegotiationData>();
-
 function generateId(): string {
   return Math.random().toString(36).substring(2, 10);
 }
 
+// Encode negotiation data for URL (base64)
+function encodeNegotiation(data: NegotiationData): string {
+  return btoa(JSON.stringify(data));
+}
+
+// Decode negotiation data from URL
+function decodeNegotiation(encoded: string): NegotiationData | null {
+  try {
+    return JSON.parse(atob(encoded));
+  } catch {
+    return null;
+  }
+}
+
 function App() {
   const [view, setView] = useState<View>('landing');
-  const [negotiationId, setNegotiationId] = useState<string | null>(null);
   const [negotiation, setNegotiation] = useState<NegotiationData | null>(null);
 
-  // Check URL for negotiation ID on load
+  // Check URL for negotiation data on load
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const id = params.get('n');
-    if (id) {
-      const existing = negotiations.get(id);
-      if (existing) {
-        setNegotiationId(id);
-        setNegotiation(existing);
-        setView('candidate');
-      } else {
-        // Create placeholder for this negotiation
-        const newNegotiation: NegotiationData = {
-          id,
-          employerMax: null,
-          candidateMin: null,
-          status: 'pending_employer',
-          result: null,
-        };
-        negotiations.set(id, newNegotiation);
-        setNegotiationId(id);
-        setNegotiation(newNegotiation);
-        setView('candidate');
+    const encoded = params.get('d');
+    
+    if (encoded) {
+      const data = decodeNegotiation(encoded);
+      if (data) {
+        setNegotiation(data);
+        // If employer has set their max, show candidate flow
+        if (data.employerMax !== null) {
+          setView('candidate');
+        } else {
+          setView('employer');
+        }
       }
     }
   }, []);
 
+  // Update URL when negotiation changes (for employer flow)
+  const updateUrl = useCallback((data: NegotiationData) => {
+    const encoded = encodeNegotiation(data);
+    const url = `${window.location.origin}${window.location.pathname}?d=${encoded}`;
+    window.history.replaceState({}, '', url);
+  }, []);
+
+  const getShareUrl = useCallback((data: NegotiationData): string => {
+    const encoded = encodeNegotiation(data);
+    return `${window.location.origin}${window.location.pathname}?d=${encoded}`;
+  }, []);
+
   const handleStartEmployer = useCallback(() => {
-    const id = generateId();
     const newNegotiation: NegotiationData = {
-      id,
+      id: generateId(),
       employerMax: null,
       candidateMin: null,
       status: 'pending_employer',
       result: null,
     };
-    negotiations.set(id, newNegotiation);
-    setNegotiationId(id);
     setNegotiation(newNegotiation);
     setView('employer');
   }, []);
 
   const handleEmployerSubmit = useCallback((maxBudget: number) => {
-    if (!negotiationId || !negotiation) return;
+    if (!negotiation) return;
     
     const updated: NegotiationData = {
       ...negotiation,
       employerMax: maxBudget,
       status: 'pending_candidate',
     };
-    negotiations.set(negotiationId, updated);
     setNegotiation(updated);
-  }, [negotiationId, negotiation]);
+    updateUrl(updated);
+  }, [negotiation, updateUrl]);
 
   const handleCandidateSubmit = useCallback((minSalary: number) => {
-    if (!negotiationId || !negotiation || negotiation.employerMax === null) return;
+    if (!negotiation || negotiation.employerMax === null) return;
     
     const result = minSalary <= negotiation.employerMax;
     const updated: NegotiationData = {
@@ -89,20 +100,17 @@ function App() {
       status: 'complete',
       result,
     };
-    negotiations.set(negotiationId, updated);
     setNegotiation(updated);
-  }, [negotiationId, negotiation]);
+    updateUrl(updated);
+  }, [negotiation, updateUrl]);
 
   const handleReset = useCallback(() => {
     setView('landing');
-    setNegotiationId(null);
     setNegotiation(null);
     window.history.replaceState({}, '', window.location.pathname);
   }, []);
 
-  const shareUrl = negotiationId 
-    ? `${window.location.origin}${window.location.pathname}?n=${negotiationId}`
-    : null;
+  const shareUrl = negotiation ? getShareUrl(negotiation) : null;
 
   return (
     <div className="app">
@@ -127,7 +135,7 @@ function App() {
           />
         )}
         
-        {view === 'employer' && negotiation && (
+        {view === 'employer' && (
           <EmployerFlow
             negotiation={negotiation}
             shareUrl={shareUrl}
