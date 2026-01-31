@@ -1,0 +1,8 @@
+# This directory contains sensitive keypair files
+# These files are NOT committed to git (see .gitignore)
+#
+# Local files in this directory:
+# - deployer.json: Solana wallet keypair for deployments
+#
+# To recreate:
+# solana-keygen new --outfile keypair/deployer.json --no-bip39-passphrase

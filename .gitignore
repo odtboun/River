@@ -16,8 +16,11 @@ target/
 !.env.example
 
 # Keypairs and secrets (NEVER commit these)
-keypair/
-*.json
+keypair/*
+!keypair/.gitkeep
+*-keypair.json
+
+# JSON files (be selective)
 !package.json
 !package-lock.json
 !tsconfig*.json
