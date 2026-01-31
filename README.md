@@ -4,9 +4,16 @@
 
 Employers and candidates discover if their salary expectations match — without revealing actual numbers to anyone.
 
-## Architecture
+## The Problem
 
-River uses **MagicBlock Private Ephemeral Rollups (PER)** with Intel TDX Trusted Execution Environments to solve the "Millionaires' Problem":
+Traditional salary negotiation creates information asymmetry:
+- Employers know their budget but not if the candidate would accept less
+- Candidates know their minimum but not if they're underselling
+- First to reveal a number often "loses"
+
+**River solves this** using MagicBlock's Private Ephemeral Rollups — both parties submit their number privately, and only learn "Match" or "No Match."
+
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -14,19 +21,19 @@ River uses **MagicBlock Private Ephemeral Rollups (PER)** with Intel TDX Trusted
 │                                                                     │
 │  1. Employer creates negotiation session                            │
 │  2. Candidate joins                                                 │
-│  3. Both delegate account to TEE                                    │
+│  3. Both delegate account to PER                                    │
 │                           │                                         │
 └───────────────────────────┼─────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│              MAGICBLOCK PRIVATE EPHEMERAL ROLLUP (TEE)              │
-│                     Intel TDX Secure Enclave                        │
+│              MAGICBLOCK PRIVATE EPHEMERAL ROLLUP (PER)              │
+│                  Powered by Intel TDX Trusted Execution             │
 │                                                                     │
 │  4. Employer submits max_budget    (encrypted, never exposed)       │
 │  5. Candidate submits min_salary   (encrypted, never exposed)       │
 │                                                                     │
-│  6. TEE computes: min_salary <= max_budget                          │
+│  6. PER computes: min_salary <= max_budget                          │
 │     Result: Match ✓ or NoMatch ✗                                    │
 │                                                                     │
 │  7. Clear salary values, commit only the boolean result             │
@@ -43,25 +50,54 @@ River uses **MagicBlock Private Ephemeral Rollups (PER)** with Intel TDX Trusted
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-## Why TEE instead of ZK?
+## Technology: PER vs TEE
+
+| Term | What It Is |
+|------|-----------|
+| **TEE** | Trusted Execution Environment — hardware-level secure enclave (Intel TDX) |
+| **PER** | Private Ephemeral Rollup — MagicBlock's infrastructure that uses TEE |
+
+**River uses MagicBlock PER**, which includes:
+- **Intel TDX TEE** — Hardware isolation ensuring computation privacy
+- **Account Delegation** — Temporarily moves Solana accounts to the rollup
+- **Authenticated RPC** — Token-based access to the secure environment
+- **Commit Back to L1** — Finalizes only the result (not private data) on Solana
+
+Think of **PER as the product** and **TEE as the engine** that powers it.
+
+## Why PER/TEE Instead of ZK?
 
 Zero-Knowledge Proofs have a "Single Prover" constraint — one party must know both private inputs to generate the proof. This defeats double-blind privacy.
 
-TEE (Trusted Execution Environment) solves this by acting as a **hardware-isolated blind third party**:
+PER with TEE solves this by acting as a **hardware-isolated blind third party**:
 - Both parties send encrypted inputs to the TEE
 - Computation happens in secure memory (Intel TDX)
 - Not even the machine operator can see the values
 - Only the result is committed to the blockchain
 
+## Demo
+
+**Live Demo:** Coming soon
+
+### TEE Mode (Real Wallet)
+- Requires Phantom, Solflare, Backpack, or similar
+- Salary values are **truly private** — processed in Intel TDX
+- Values never appear on public blockchain
+
+### Quick Start Mode (Burner Wallet)
+- No wallet needed — instant demo
+- Values are **publicly visible** on-chain
+- For testing the flow, not real negotiations
+
 ## Tech Stack
 
 | Component | Technology |
 |-----------|------------|
-| Smart Contract | Anchor (Rust) |
+| Smart Contract | Anchor (Rust) on Solana |
 | Privacy Layer | MagicBlock Private Ephemeral Rollups |
-| TEE | Intel TDX via MagicBlock |
+| TEE Hardware | Intel TDX |
 | Blockchain | Solana Devnet |
-| Frontend | React + TypeScript |
+| Frontend | React + TypeScript + Vite |
 
 ## Project Structure
 
@@ -70,34 +106,11 @@ River/
 ├── programs/river/          # Anchor smart contract
 │   └── src/lib.rs           # Negotiation logic
 ├── frontend/                # React app
+│   ├── src/lib/             # River SDK client
+│   └── src/components/      # UI components
 ├── tests/                   # Integration tests
-├── archive/                 # Archived Noir circuits (previous approach)
 └── Anchor.toml              # Anchor config
 ```
-
-## TEE Requirements
-
-**For Private Mode (TEE Enabled):**
-- Requires a real Solana wallet with `signMessage` capability
-- Compatible wallets: Phantom, Solflare, Backpack, Glow, etc.
-- Salary values are encrypted and processed in Intel TDX secure enclave
-- Values **never** appear on public blockchain
-
-**Quick Start Mode (Burner Wallet):**
-- No wallet installation required - instant demo
-- Values are **publicly visible** on-chain (not private)
-- Suitable for testing the flow, not for real negotiations
-
-## Flow
-
-1. **Employer** creates a negotiation session on Solana L1
-2. **Candidate** joins the session
-3. **Both parties** delegate the session account to the TEE (if using real wallet)
-4. **Employer** submits `max_budget` to the TEE (encrypted)
-5. **Candidate** submits `min_salary` to the TEE (encrypted)
-6. **TEE** computes `min_salary <= max_budget` and stores result
-7. **Finalize** commits only the boolean result back to Solana L1
-8. **Both** see "Match" or "No Match" — actual numbers discarded
 
 ## Development
 
@@ -105,40 +118,61 @@ River/
 
 - Rust 1.85+
 - Solana CLI 2.3+
-- Anchor 0.30+
+- Anchor 0.29+
 - Node.js 20+
 
-### Build
+### Build & Deploy
 
 ```bash
+# Build program
 anchor build
-```
 
-### Deploy
-
-```bash
+# Deploy to devnet
 anchor deploy --provider.cluster devnet
+
+# Run tests
+anchor test
 ```
 
-### Test
+### Run Frontend
 
 ```bash
-anchor test
+cd frontend
+npm install
+npm run dev
 ```
 
 ## MagicBlock Integration
 
-TEE Endpoint: `https://tee.magicblock.app`
-TEE Validator: `FnE6VJT5QNZdedZPnCoLsARgBwoE6DeJNjBs2H1gySXA`
+| Config | Value |
+|--------|-------|
+| TEE Endpoint | `https://tee.magicblock.app` |
+| Cluster | `devnet` |
+| TEE Validator | `FnE6VJT5QNZdedZPnCoLsARgBwoE6DeJNjBs2H1gySXA` |
 
-See [MagicBlock PER Documentation](https://docs.magicblock.gg/pages/private-ephemeral-rollups-pers/how-to-guide/quickstart)
+**SDK Used:** `@magicblock-labs/ephemeral-rollups-sdk`
+
+See [MagicBlock PER Documentation](https://docs.magicblock.gg/pages/private-ephemeral-rollups-pers/introduction/onchain-privacy)
 
 ## Security Model
 
-- **Confidentiality**: Salary values encrypted in transit and memory via Intel TDX
-- **Integrity**: TEE attestation ensures correct execution
-- **Finality**: Results committed to Solana L1 with blockchain guarantees
-- **Privacy**: Raw salary integers never stored on-chain
+| Aspect | Guarantee |
+|--------|-----------|
+| **Confidentiality** | Salary values encrypted via Intel TDX attestation |
+| **Integrity** | TEE attestation ensures correct execution |
+| **Finality** | Results committed to Solana L1 |
+| **Privacy** | Raw salary integers never stored on-chain |
+
+## How It Works (Technical)
+
+1. **Create Negotiation** — Employer calls `create_negotiation` on L1
+2. **Join** — Candidate calls `join_negotiation` on L1
+3. **Delegate** — Account delegated to PER via `createDelegateInstruction`
+4. **Authenticate** — Wallet signs challenge for TEE auth token
+5. **Submit Values** — Both call `submit_*` via TEE RPC (values encrypted)
+6. **Compare** — `compare` instruction runs in TEE, stores only result
+7. **Finalize** — `createCommitAndUndelegateInstruction` commits to L1
+8. **View Result** — Both see Match/NoMatch, values discarded
 
 ## License
 
