@@ -1,6 +1,17 @@
 import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 
 export function MarketingHome() {
+    const [showNav, setShowNav] = useState(false);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            setShowNav(window.scrollY > 600);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
     return (
         <div className="marketing-home" style={{
             minHeight: '100vh',
@@ -12,6 +23,10 @@ export function MarketingHome() {
         }}>
             {/* Navigation */}
             <nav className="nav" style={{
+                position: 'fixed',
+                top: 0, left: 0, right: 0,
+                transform: showNav ? 'translateY(0)' : 'translateY(-100%)',
+                transition: 'transform 0.3s ease-in-out',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
@@ -20,9 +35,8 @@ export function MarketingHome() {
                 margin: '0 auto',
                 width: '100%',
                 borderBottom: '1px solid #f3f4f6',
-                position: 'relative',
-                zIndex: 20,
-                background: 'rgba(255,255,255,0.8)',
+                zIndex: 50,
+                background: 'rgba(255,255,255,0.9)',
                 backdropFilter: 'blur(8px)'
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
