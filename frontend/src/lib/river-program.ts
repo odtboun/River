@@ -1,7 +1,12 @@
 import { Program, AnchorProvider, BN, setProvider } from '@coral-xyz/anchor';
-import { PublicKey, SystemProgram, Connection, Keypair } from '@solana/web3.js';
+import { PublicKey, SystemProgram, Connection, Keypair, Transaction } from '@solana/web3.js';
 import type { AnchorWallet } from '@solana/wallet-adapter-react';
-import { verifyTeeRpcIntegrity, getAuthToken } from '@magicblock-labs/ephemeral-rollups-sdk';
+import { 
+  verifyTeeRpcIntegrity, 
+  getAuthToken,
+  createDelegateInstruction,
+  createCommitAndUndelegateInstruction,
+} from '@magicblock-labs/ephemeral-rollups-sdk';
 
 // Program ID from deployment
 export const PROGRAM_ID = new PublicKey('HaUJ1uQtgZi8x822pkGFNtVHXaFbGKd2JKGBRS4q5ZvR');
@@ -288,12 +293,84 @@ export class RiverClient {
     return this.teeAuth.isVerified && this.teeProgram !== null;
   }
 
+  // Track which accounts are delegated
+  private delegatedAccounts: Set<string> = new Set();
+
   // Get the appropriate program (TEE or L1)
   private getProgram(useTee: boolean = false): Program {
     if (useTee && this.teeProgram) {
       return this.teeProgram;
     }
     return this.program;
+  }
+
+  // Delegate an account to the TEE validator for confidential processing
+  async delegateAccount(accountPda: PublicKey): Promise<string> {
+    console.log(`Delegating account ${accountPda.toBase58()} to TEE validator...`);
+    
+    const connection = new Connection(RPC_ENDPOINT, 'confirmed');
+    
+    // Create delegation instruction using MagicBlock SDK
+    // The SDK handles PDA derivation internally
+    const delegateIx = createDelegateInstruction(
+      {
+        payer: this.wallet.publicKey,
+        delegatedAccount: accountPda,
+        ownerProgram: PROGRAM_ID,
+        validator: TEE_VALIDATOR, // TEE validator for private processing
+      },
+      {} // args (empty for basic delegation)
+    );
+    
+    // Build and send transaction
+    const tx = new Transaction().add(delegateIx);
+    tx.feePayer = this.wallet.publicKey;
+    tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+    
+    const signedTx = await this.wallet.signTransaction(tx);
+    const signature = await connection.sendRawTransaction(signedTx.serialize());
+    await connection.confirmTransaction(signature, 'confirmed');
+    
+    // Track as delegated
+    this.delegatedAccounts.add(accountPda.toBase58());
+    console.log(`Account delegated to TEE: ${signature}`);
+    
+    return signature;
+  }
+
+  // Commit state back to L1 and undelegate
+  async commitAndUndelegate(accountPda: PublicKey): Promise<string> {
+    console.log(`Committing and undelegating account ${accountPda.toBase58()}...`);
+    
+    // Use TEE connection for commit if available
+    const connection = this.teeAuth.connection || new Connection(RPC_ENDPOINT, 'confirmed');
+    
+    // Create commit and undelegate instruction
+    // This tells the TEE to push the final state back to L1
+    const commitIx = createCommitAndUndelegateInstruction(
+      this.wallet.publicKey, // payer
+      [accountPda] // accounts to commit and undelegate
+    );
+    
+    // Build and send transaction
+    const tx = new Transaction().add(commitIx);
+    tx.feePayer = this.wallet.publicKey;
+    tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+    
+    const signedTx = await this.wallet.signTransaction(tx);
+    const signature = await connection.sendRawTransaction(signedTx.serialize());
+    await connection.confirmTransaction(signature, 'confirmed');
+    
+    // Remove from delegated set
+    this.delegatedAccounts.delete(accountPda.toBase58());
+    console.log(`Account committed and undelegated: ${signature}`);
+    
+    return signature;
+  }
+
+  // Check if an account is delegated to TEE
+  isAccountDelegated(accountPda: PublicKey): boolean {
+    return this.delegatedAccounts.has(accountPda.toBase58());
   }
 
   // Create a new negotiation on L1 (Employer)
@@ -332,9 +409,20 @@ export class RiverClient {
   async submitEmployerBudget(negotiationId: BN, maxBudget: number): Promise<string> {
     const [pda] = getNegotiationPDA(negotiationId);
     
-    // Try to use TEE for confidential submission
-    const program = this.getProgram(this.isTeeAvailable());
-    const endpoint = this.isTeeAvailable() ? 'TEE' : 'L1';
+    // If TEE is available but account not delegated, delegate first
+    if (this.isTeeAvailable() && !this.isAccountDelegated(pda)) {
+      console.log('TEE available - delegating account for confidential processing...');
+      try {
+        await this.delegateAccount(pda);
+      } catch (err) {
+        console.warn('Delegation failed, falling back to L1:', err);
+      }
+    }
+    
+    // Use TEE if delegated and TEE is available
+    const useTee = this.isTeeAvailable() && this.isAccountDelegated(pda);
+    const program = this.getProgram(useTee);
+    const endpoint = useTee ? 'TEE (confidential)' : 'L1 (visible)';
     console.log(`Submitting employer budget via ${endpoint}...`);
 
     const tx = await program.methods
@@ -352,9 +440,20 @@ export class RiverClient {
   async submitCandidateRequirement(negotiationId: BN, minSalary: number): Promise<string> {
     const [pda] = getNegotiationPDA(negotiationId);
 
-    // Try to use TEE for confidential submission
-    const program = this.getProgram(this.isTeeAvailable());
-    const endpoint = this.isTeeAvailable() ? 'TEE' : 'L1';
+    // If TEE is available but account not delegated, delegate first
+    if (this.isTeeAvailable() && !this.isAccountDelegated(pda)) {
+      console.log('TEE available - delegating account for confidential processing...');
+      try {
+        await this.delegateAccount(pda);
+      } catch (err) {
+        console.warn('Delegation failed, falling back to L1:', err);
+      }
+    }
+
+    // Use TEE if delegated and TEE is available
+    const useTee = this.isTeeAvailable() && this.isAccountDelegated(pda);
+    const program = this.getProgram(useTee);
+    const endpoint = useTee ? 'TEE (confidential)' : 'L1 (visible)';
     console.log(`Submitting candidate requirement via ${endpoint}...`);
 
     const tx = await program.methods
