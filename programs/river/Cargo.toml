@@ -14,6 +14,9 @@ no-idl = []
 no-log-ix-name = []
 cpi = ["no-entrypoint"]
 default = []
+idl-build = ["anchor-lang/idl-build"]
 
 [dependencies]
-anchor-lang = "0.30.1"
+anchor-lang = "0.29.0"
+# Pin to avoid edition2024 issue with 0.4.x
+constant_time_eq = ">=0.3.0, <0.4.0"

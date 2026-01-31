@@ -12,8 +12,9 @@ The ZK approach was abandoned due to the "Single Prover" constraint where one pa
 | Item | Value |
 |------|-------|
 | Network | Solana Devnet |
-| Program ID | TBD (deploy with `anchor deploy`) |
+| Program ID | `HaUJ1uQtgZi8x822pkGFNtVHXaFbGKd2JKGBRS4q5ZvR` |
 | Deployer Address | `D8L5Duu5VbZrKqx7ryw4LW48E5iucfzRZ3FPGeyBVh9p` |
+| Explorer | [View on Solscan](https://solscan.io/account/HaUJ1uQtgZi8x822pkGFNtVHXaFbGKd2JKGBRS4q5ZvR?cluster=devnet) |
 
 ## MagicBlock TEE Configuration
 
