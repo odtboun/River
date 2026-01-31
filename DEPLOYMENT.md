@@ -1,38 +1,43 @@
 # Deployment Information
 
-## Solana Devnet
+## Architecture Change
 
-**Deployed:** January 31, 2026
+**Previous**: Zero-Knowledge Proofs with Aztec Noir + Sunspot
+**Current**: Confidential Computing with MagicBlock Private Ephemeral Rollups (TEE)
+
+The ZK approach was abandoned due to the "Single Prover" constraint where one party must know both private inputs to generate the proof.
+
+## Solana Devnet (Current)
 
 | Item | Value |
 |------|-------|
 | Network | Solana Devnet |
-| Program ID | `6ShLhqY6krAXKmZjpFeZ561cVvVaGUn1PeeLE91HDpBT` |
+| Program ID | TBD (deploy with `anchor deploy`) |
 | Deployer Address | `D8L5Duu5VbZrKqx7ryw4LW48E5iucfzRZ3FPGeyBVh9p` |
-| Explorer | [View Program](https://explorer.solana.com/address/6ShLhqY6krAXKmZjpFeZ561cVvVaGUn1PeeLE91HDpBT?cluster=devnet) |
 
-## Circuit Info
+## MagicBlock TEE Configuration
 
 | Item | Value |
 |------|-------|
-| Noir Version | 1.0.0-beta.18 |
-| Circuit | `salary_match` |
-| Constraints | 72 |
-| Proof System | Groth16 (via Sunspot) |
+| TEE Endpoint | `https://tee.magicblock.app` |
+| TEE Validator | `FnE6VJT5QNZdedZPnCoLsARgBwoE6DeJNjBs2H1gySXA` |
+| Delegation Program | `DELeGGvXpWV2fqJUhqcF5ZSYMS4JTLjteaAMARRSaeSh` |
 
-## RPC Endpoints
+## Archived Components
 
+The original Noir/Sunspot implementation is archived in `archive/noir-circuits/`:
+- Noir circuit for salary comparison
+- Sunspot verifier (deployed to Solana but no longer used)
+- Old Program ID: `6ShLhqY6krAXKmZjpFeZ561cVvVaGUn1PeeLE91HDpBT`
+
+## Deploy Steps
+
+```bash
+# Build the Anchor program
+anchor build
+
+# Deploy to devnet
+anchor deploy --provider.cluster devnet
+
+# Update Anchor.toml with new program ID
 ```
-Devnet: https://api.devnet.solana.com
-```
-
-For production, use [QuickNode](https://www.quicknode.com/) or another RPC provider.
-
-## Verification
-
-To verify a proof on-chain, send a transaction to the program with:
-```
-instruction_data = proof_bytes (388 bytes) || public_witness_bytes
-```
-
-The transaction succeeds if the proof is valid, fails otherwise.

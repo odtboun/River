@@ -6,8 +6,12 @@ node_modules/
 # Build outputs
 dist/
 build/
-*.so
 target/
+
+# Anchor/Solana
+.anchor/
+*.so
+test-ledger/
 
 # Environment files
 .env

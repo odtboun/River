@@ -2,148 +2,130 @@
 
 **Double-Blind Salary Negotiation on Solana**
 
-Discover if salary expectations align without revealing actual numbers. Powered by Zero-Knowledge Proofs.
+Employers and candidates discover if their salary expectations match — without revealing actual numbers to anyone.
 
-## How It Works
+## Architecture
+
+River uses **MagicBlock Private Ephemeral Rollups (PER)** with Intel TDX Trusted Execution Environments to solve the "Millionaires' Problem":
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                                                                  │
-│   1. EMPLOYER                  2. SHARE                          │
-│   ┌─────────────┐              ┌─────────────┐                   │
-│   │ Set budget  │─────────────▶│ Copy link   │                   │
-│   │ ($120,000)  │              │ Send to     │                   │
-│   │  [private]  │              │ candidate   │                   │
-│   └─────────────┘              └──────┬──────┘                   │
-│                                       │                          │
-│   3. CANDIDATE                        │                          │
-│   ┌─────────────┐◀────────────────────┘                          │
-│   │ Visit link  │                                                │
-│   │ Set minimum │                                                │
-│   │ ($100,000)  │                                                │
-│   │  [private]  │                                                │
-│   └──────┬──────┘                                                │
-│          │                                                       │
-│          ▼                                                       │
-│   4. RESULT                                                      │
-│   ┌─────────────┐                                                │
-│   │  ✓ Match    │  Both see result, numbers stay secret          │
-│   └─────────────┘                                                │
-│                                                                  │
-└──────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                         SOLANA L1                                   │
+│                                                                     │
+│  1. Employer creates negotiation session                            │
+│  2. Candidate joins                                                 │
+│  3. Both delegate account to TEE                                    │
+│                           │                                         │
+└───────────────────────────┼─────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│              MAGICBLOCK PRIVATE EPHEMERAL ROLLUP (TEE)              │
+│                     Intel TDX Secure Enclave                        │
+│                                                                     │
+│  4. Employer submits max_budget    (encrypted, never exposed)       │
+│  5. Candidate submits min_salary   (encrypted, never exposed)       │
+│                                                                     │
+│  6. TEE computes: min_salary <= max_budget                          │
+│     Result: Match ✓ or NoMatch ✗                                    │
+│                                                                     │
+│  7. Clear salary values, commit only the boolean result             │
+│                           │                                         │
+└───────────────────────────┼─────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                         SOLANA L1                                   │
+│                                                                     │
+│  8. Final state: { result: Match | NoMatch }                        │
+│     (actual salary numbers never stored on-chain)                   │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-## User Flow
+## Why TEE instead of ZK?
 
-1. **Employer creates negotiation** — enters maximum budget, locks it in
-2. **Employer shares link** — copies unique URL to send to candidate  
-3. **Candidate visits link** — enters minimum salary requirement
-4. **Both see result** — Match or No Match (actual numbers never revealed)
+Zero-Knowledge Proofs have a "Single Prover" constraint — one party must know both private inputs to generate the proof. This defeats double-blind privacy.
+
+TEE (Trusted Execution Environment) solves this by acting as a **hardware-isolated blind third party**:
+- Both parties send encrypted inputs to the TEE
+- Computation happens in secure memory (Intel TDX)
+- Not even the machine operator can see the values
+- Only the result is committed to the blockchain
 
 ## Tech Stack
 
 | Component | Technology |
 |-----------|------------|
-| ZK Circuit | [Aztec Noir](https://noir-lang.org) |
-| Solana Verifier | [Sunspot](https://github.com/reilabs/sunspot) |
+| Smart Contract | Anchor (Rust) |
+| Privacy Layer | MagicBlock Private Ephemeral Rollups |
+| TEE | Intel TDX via MagicBlock |
 | Blockchain | Solana Devnet |
-| Frontend | React + TypeScript + Vite |
-
-## Quick Start
-
-```bash
-# Install dependencies
-cd frontend && npm install
-
-# Run development server
-npm run dev
-```
-
-Open [http://localhost:5173](http://localhost:5173)
+| Frontend | React + TypeScript |
 
 ## Project Structure
 
 ```
 River/
-├── circuits/salary_match/     # Noir ZK circuit
-│   ├── src/main.nr            # Circuit logic
-│   └── Nargo.toml             # Config
-├── frontend/                  # React app
-│   ├── src/components/
-│   │   ├── LandingPage.tsx    # Home page
-│   │   ├── EmployerFlow.tsx   # Employer journey
-│   │   └── CandidateFlow.tsx  # Candidate journey
-│   └── src/lib/               # Proof & Solana utilities
-├── scripts/                   # Build & deploy scripts
-└── keypair/                   # Solana keys (gitignored)
+├── programs/river/          # Anchor smart contract
+│   └── src/lib.rs           # Negotiation logic
+├── frontend/                # React app
+├── tests/                   # Integration tests
+├── archive/                 # Archived Noir circuits (previous approach)
+└── Anchor.toml              # Anchor config
 ```
 
-## The Circuit
+## Flow
 
-```noir
-fn main(
-    employer_max: u64,    // Private
-    candidate_min: u64    // Private
-) -> pub Field {
-    let is_match = candidate_min <= employer_max;
-    if is_match { 1 } else { 0 }
-}
-```
+1. **Employer** creates a negotiation session on Solana L1
+2. **Candidate** joins the session
+3. **Both parties** delegate the session account to the TEE
+4. **Employer** submits `max_budget` to the TEE (encrypted)
+5. **Candidate** submits `min_salary` to the TEE (encrypted)
+6. **TEE** computes `min_salary <= max_budget` and stores result
+7. **Finalize** commits only the boolean result back to Solana L1
+8. **Both** see "Match" or "No Match" — actual numbers discarded
 
-Only the result (1 or 0) is public. The actual salary numbers are never revealed.
-
-## Full Setup (with Solana deployment)
+## Development
 
 ### Prerequisites
 
-- Node.js 18+
-- [Noir](https://noir-lang.org/docs/getting_started/noir_installation) (nargo)
-- [Solana CLI](https://solana.com/docs/intro/installation)
-- [Go 1.24+](https://go.dev/dl/) (for Sunspot)
+- Rust 1.85+
+- Solana CLI 2.3+
+- Anchor 0.30+
+- Node.js 20+
 
-### Install Sunspot
-
-```bash
-git clone https://github.com/reilabs/sunspot.git ~/sunspot
-cd ~/sunspot/go && go build -o sunspot .
-sudo mv sunspot /usr/local/bin/
-echo 'export GNARK_VERIFIER_BIN="$HOME/sunspot/gnark-solana/crates/verifier-bin"' >> ~/.zshrc
-source ~/.zshrc
-```
-
-### Compile & Deploy
+### Build
 
 ```bash
-# Compile circuit
-./scripts/compile.sh
-
-# Deploy to Solana Devnet
-solana config set --url devnet
-./scripts/deploy.sh
+anchor build
 ```
 
-## Environment Variables
+### Deploy
 
-Create `frontend/.env`:
-
-```env
-VITE_SOLANA_RPC_URL=https://api.devnet.solana.com
-VITE_VERIFIER_PROGRAM_ID=<your-program-id>
+```bash
+anchor deploy --provider.cluster devnet
 ```
 
-For better performance, use [QuickNode](https://www.quicknode.com/):
+### Test
 
-```env
-VITE_QUICKNODE_RPC_URL=https://your-endpoint.solana-devnet.quiknode.pro/your-key/
+```bash
+anchor test
 ```
 
-## Security
+## MagicBlock Integration
 
-⚠️ **Development Only** — The trusted setup is not production-ready. A proper MPC ceremony would be required for production.
+TEE Endpoint: `https://tee.magicblock.app`
+TEE Validator: `FnE6VJT5QNZdedZPnCoLsARgBwoE6DeJNjBs2H1gySXA`
 
-- Never commit keypair files
-- Circuit is tested but not audited
-- Demo mode works without deployed circuit
+See [MagicBlock PER Documentation](https://docs.magicblock.gg/pages/private-ephemeral-rollups-pers/how-to-guide/quickstart)
+
+## Security Model
+
+- **Confidentiality**: Salary values encrypted in transit and memory via Intel TDX
+- **Integrity**: TEE attestation ensures correct execution
+- **Finality**: Results committed to Solana L1 with blockchain guarantees
+- **Privacy**: Raw salary integers never stored on-chain
 
 ## License
 
