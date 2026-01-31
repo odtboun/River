@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { Connection } from '@solana/web3.js';
 import { BN } from '@coral-xyz/anchor';
 import { EmployerFlow } from '../components/EmployerFlow';
@@ -292,10 +293,10 @@ export function NegotiationApp() {
         <div className="app">
             <header className="header">
                 <div className="header-content">
-                    <a href="/" onClick={(e) => { e.preventDefault(); handleReset(); }} className="logo">
+                    <Link to="/" className="logo">
                         <img src="/river.svg" alt="River" className="logo-icon" />
                         <span className="logo-text">River</span>
-                    </a>
+                    </Link>
                     <div className="header-right">
                         <div className="network-badge">
                             <span className="network-dot"></span>
