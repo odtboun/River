@@ -181,7 +181,7 @@ export function MarketingHome() {
                 </section>
 
                 {/* Problem / Solution Grid */}
-                <section style={{ background: '#f9fafb', padding: '6rem 1.5rem', borderTop: '1px solid #e5e7eb', borderBottom: '1px solid #e5e7eb', position: 'relative', zIndex: 10 }}>
+                <section style={{ background: '#ffffff', padding: '6rem 1.5rem', position: 'relative', zIndex: 10 }}>
                     <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '4rem' }}>
                         <div>
                             <h3 style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#dc2626', marginBottom: '1rem' }}>The Problem</h3>
