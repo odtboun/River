@@ -66,7 +66,7 @@ export function MarketingHome() {
                     <div style={{
                         position: 'absolute',
                         top: 0, left: 0, width: '100%', height: '100%',
-                        background: 'linear-gradient(to bottom, rgba(255,255,255,0.9), rgba(255,255,255,0.75) 40%, rgba(255,255,255,1))',
+                        background: 'linear-gradient(to bottom, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.85) 60%, #ffffff 100%)',
                         zIndex: 1
                     }} />
 
