@@ -1,18 +1,10 @@
 use anchor_lang::prelude::*;
-use ephemeral_rollups_sdk::anchor::{commit, delegate, ephemeral};
-use ephemeral_rollups_sdk::cpi::{
-    commit_and_undelegate_accounts, delegate_account, DelegateConfig,
-};
 
-declare_id!("RiverXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+declare_id!("HaUJ1uQtgZi8x822pkGFNtVHXaFbGKd2JKGBRS4q5ZvR");
 
 // Seeds for PDA derivation
 pub const NEGOTIATION_SEED: &[u8] = b"negotiation";
 
-// MagicBlock TEE Validator
-pub const TEE_VALIDATOR: &str = "FnE6VJT5QNZdedZPnCoLsARgBwoE6DeJNjBs2H1gySXA";
-
-#[ephemeral]
 #[program]
 pub mod river {
     use super::*;
@@ -52,26 +44,8 @@ pub mod river {
         Ok(())
     }
 
-    /// Delegate the negotiation account to the TEE
-    /// Both employer and candidate must call this
-    pub fn delegate_negotiation(ctx: Context<DelegateNegotiation>) -> Result<()> {
-        let negotiation = &ctx.accounts.negotiation;
-        
-        ctx.accounts.delegate_pda(
-            &ctx.accounts.payer,
-            &[NEGOTIATION_SEED, &negotiation.id.to_le_bytes()],
-            DelegateConfig {
-                validator: ctx.accounts.validator.as_ref().map(|v| v.key()),
-                ..Default::default()
-            },
-        )?;
-        
-        msg!("Negotiation {} delegated to TEE", negotiation.id);
-        Ok(())
-    }
-
     /// Submit employer's maximum budget
-    /// Called inside the TEE - value is encrypted in transit and memory
+    /// When called via TEE, the value is encrypted in transit and memory
     pub fn submit_employer_budget(
         ctx: Context<SubmitBudget>,
         max_budget: u64,
@@ -88,7 +62,6 @@ pub mod river {
         );
         
         negotiation.employer_max = Some(max_budget);
-        negotiation.status = NegotiationStatus::EmployerSubmitted;
         
         // Check if we can determine result
         check_and_update_result(negotiation)?;
@@ -98,7 +71,7 @@ pub mod river {
     }
 
     /// Submit candidate's minimum salary requirement
-    /// Called inside the TEE - value is encrypted in transit and memory
+    /// When called via TEE, the value is encrypted in transit and memory
     pub fn submit_candidate_requirement(
         ctx: Context<SubmitRequirement>,
         min_salary: u64,
@@ -115,7 +88,6 @@ pub mod river {
         );
         
         negotiation.candidate_min = Some(min_salary);
-        negotiation.status = NegotiationStatus::CandidateSubmitted;
         
         // Check if we can determine result
         check_and_update_result(negotiation)?;
@@ -124,9 +96,8 @@ pub mod river {
         Ok(())
     }
 
-    /// Finalize and commit the result back to Solana L1
-    /// Only stores the boolean result - actual numbers are discarded
-    #[commit]
+    /// Finalize the negotiation - clear salary values, keep only result
+    /// Called before undelegating from TEE back to L1
     pub fn finalize_negotiation(ctx: Context<FinalizeNegotiation>) -> Result<()> {
         let negotiation = &mut ctx.accounts.negotiation;
         
@@ -139,15 +110,7 @@ pub mod river {
         // Only the result (Match/NoMatch) is persisted on-chain
         negotiation.employer_max = None;
         negotiation.candidate_min = None;
-        
-        // Commit and undelegate
-        negotiation.exit(&crate::ID)?;
-        commit_and_undelegate_accounts(
-            &ctx.accounts.payer,
-            vec![&negotiation.to_account_info()],
-            &ctx.accounts.magic_context,
-            &ctx.accounts.magic_program,
-        )?;
+        negotiation.status = NegotiationStatus::Finalized;
         
         msg!(
             "Negotiation {} finalized with result: {:?}",
@@ -212,24 +175,6 @@ pub struct JoinNegotiation<'info> {
     pub candidate: Signer<'info>,
 }
 
-#[delegate]
-#[derive(Accounts)]
-pub struct DelegateNegotiation<'info> {
-    #[account(
-        mut,
-        del,
-        seeds = [NEGOTIATION_SEED, &negotiation.id.to_le_bytes()],
-        bump
-    )]
-    pub negotiation: Account<'info, Negotiation>,
-    
-    #[account(mut)]
-    pub payer: Signer<'info>,
-    
-    /// CHECK: Validated by delegate program
-    pub validator: Option<AccountInfo<'info>>,
-}
-
 #[derive(Accounts)]
 pub struct SubmitBudget<'info> {
     #[account(
@@ -254,7 +199,6 @@ pub struct SubmitRequirement<'info> {
     pub candidate: Signer<'info>,
 }
 
-#[commit]
 #[derive(Accounts)]
 pub struct FinalizeNegotiation<'info> {
     #[account(
@@ -299,6 +243,7 @@ pub enum NegotiationStatus {
     EmployerSubmitted,
     CandidateSubmitted,
     Complete,
+    Finalized,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, Debug)]
