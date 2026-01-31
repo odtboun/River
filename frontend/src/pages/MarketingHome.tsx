@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { WavesBackground } from '../components/WavesBackground';
 
 export function MarketingHome() {
     return (
@@ -47,85 +48,90 @@ export function MarketingHome() {
 
             {/* Hero Section */}
             <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <section style={{
-                    padding: '6rem 1.5rem',
-                    textAlign: 'center',
-                    maxWidth: '900px',
-                    margin: '0 auto'
-                }}>
+                <section style={{ position: 'relative', overflow: 'hidden' }}>
+                    <WavesBackground />
                     <div style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        padding: '0.375rem 1rem',
-                        background: '#f3f4f6',
-                        borderRadius: '9999px',
-                        fontSize: '0.875rem',
-                        color: '#4b5563',
-                        fontWeight: 500,
-                        marginBottom: '2rem'
+                        padding: '6rem 1.5rem',
+                        textAlign: 'center',
+                        maxWidth: '900px',
+                        margin: '0 auto',
+                        position: 'relative',
+                        zIndex: 10
                     }}>
-                        <span style={{ width: '6px', height: '6px', backgroundColor: '#10b981', borderRadius: '50%' }}></span>
-                        Live on Solana Devnet
-                    </div>
+                        <div style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.375rem 1rem',
+                            background: '#f3f4f6',
+                            borderRadius: '9999px',
+                            fontSize: '0.875rem',
+                            color: '#4b5563',
+                            fontWeight: 500,
+                            marginBottom: '2rem'
+                        }}>
+                            <span style={{ width: '6px', height: '6px', backgroundColor: '#10b981', borderRadius: '50%' }}></span>
+                            Live on Solana Devnet
+                        </div>
 
-                    <h1 style={{
-                        fontSize: 'clamp(3rem, 6vw, 4.5rem)',
-                        fontWeight: 800,
-                        lineHeight: 1.1,
-                        letterSpacing: '-0.03em',
-                        color: '#111827',
-                        marginBottom: '1.5rem'
-                    }}>
-                        Salary Negotiation.<br />
-                        <span style={{ color: '#9ca3af' }}>Double-Blind. Private.</span>
-                    </h1>
+                        <h1 style={{
+                            fontSize: 'clamp(3rem, 6vw, 4.5rem)',
+                            fontWeight: 800,
+                            lineHeight: 1.1,
+                            letterSpacing: '-0.03em',
+                            color: '#111827',
+                            marginBottom: '1.5rem'
+                        }}>
+                            Salary Negotiation.<br />
+                            <span style={{ color: '#9ca3af' }}>Double-Blind. Private.</span>
+                        </h1>
 
-                    <p style={{
-                        fontSize: '1.25rem',
-                        color: '#4b5563',
-                        maxWidth: '580px',
-                        margin: '0 auto 3rem',
-                        lineHeight: 1.6
-                    }}>
-                        Discover if your expectations match without ever revealing your number.
-                        Powered by Intel TDX Trusted Execution Environments.
-                    </p>
+                        <p style={{
+                            fontSize: '1.25rem',
+                            color: '#4b5563',
+                            maxWidth: '580px',
+                            margin: '0 auto 3rem',
+                            lineHeight: 1.6
+                        }}>
+                            Discover if your expectations match without ever revealing your number.
+                            Powered by Intel TDX Trusted Execution Environments.
+                        </p>
 
-                    <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-                        <Link
-                            to="/app"
-                            style={{
-                                background: '#18181b',
-                                color: '#fff',
-                                padding: '1rem 2rem',
-                                borderRadius: '8px',
-                                fontSize: '1.0625rem',
-                                fontWeight: 500,
-                                textDecoration: 'none',
-                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-                            }}
-                        >
-                            Start Negotiation
-                        </Link>
-                        <a
-                            href="https://github.com/odtboun/River"
-                            target="_blank"
-                            rel="noreferrer"
-                            style={{
-                                background: '#fff',
-                                color: '#111827',
-                                padding: '1rem 2rem',
-                                borderRadius: '8px',
-                                fontSize: '1.0625rem',
-                                fontWeight: 500,
-                                textDecoration: 'none',
-                                border: '1px solid #e5e7eb',
-                                boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
-                            }}
-                        >
-                            View Source
-                        </a>
+                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                            <Link
+                                to="/app"
+                                style={{
+                                    background: '#18181b',
+                                    color: '#fff',
+                                    padding: '1rem 2rem',
+                                    borderRadius: '8px',
+                                    fontSize: '1.0625rem',
+                                    fontWeight: 500,
+                                    textDecoration: 'none',
+                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                                }}
+                            >
+                                Start Negotiation
+                            </Link>
+                            <a
+                                href="https://github.com/odtboun/River"
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{
+                                    background: '#fff',
+                                    color: '#111827',
+                                    padding: '1rem 2rem',
+                                    borderRadius: '8px',
+                                    fontSize: '1.0625rem',
+                                    fontWeight: 500,
+                                    textDecoration: 'none',
+                                    border: '1px solid #e5e7eb',
+                                    boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+                                }}
+                            >
+                                View Source
+                            </a>
+                        </div>
                     </div>
                 </section>
 
