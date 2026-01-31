@@ -1,20 +1,30 @@
 import { useState, useCallback } from 'react';
-
-interface NegotiationData {
-  id: string;
-  employerMax: number | null;
-  candidateMin: number | null;
-  status: 'pending_employer' | 'pending_candidate' | 'complete';
-  result: boolean | null;
-}
+import { BN } from '@coral-xyz/anchor';
+import { NegotiationData } from '../lib';
 
 interface CandidateFlowProps {
+  connected: boolean;
   negotiation: NegotiationData | null;
-  onSubmit: (minSalary: number) => void;
+  negotiationId: BN | null;
+  loading: boolean;
+  txSignature: string | null;
+  walletAddress: string | null;
+  onJoin: () => Promise<void>;
+  onSubmit: (minSalary: number) => Promise<void>;
   onReset: () => void;
 }
 
-export function CandidateFlow({ negotiation, onSubmit, onReset }: CandidateFlowProps) {
+export function CandidateFlow({ 
+  connected, 
+  negotiation, 
+  negotiationId,
+  loading,
+  txSignature,
+  walletAddress,
+  onJoin,
+  onSubmit, 
+  onReset 
+}: CandidateFlowProps) {
   const [inputValue, setInputValue] = useState('');
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -22,10 +32,10 @@ export function CandidateFlow({ negotiation, onSubmit, onReset }: CandidateFlowP
     setInputValue(raw);
   }, []);
 
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = useCallback(async () => {
     const value = parseInt(inputValue);
     if (value > 0) {
-      onSubmit(value);
+      await onSubmit(value);
     }
   }, [inputValue, onSubmit]);
 
@@ -34,23 +44,26 @@ export function CandidateFlow({ negotiation, onSubmit, onReset }: CandidateFlowP
     return parseInt(val).toLocaleString('en-US');
   };
 
-  // No negotiation found or employer hasn't submitted yet
-  if (!negotiation || negotiation.status === 'pending_employer') {
+  // Check if candidate has already joined
+  const hasJoined = negotiation?.candidate === walletAddress;
+
+  // No negotiation ID in URL
+  if (!negotiationId) {
     return (
       <>
         <div className="page-header">
-          <h1 className="page-title">Waiting for employer</h1>
+          <h1 className="page-title">Join a Negotiation</h1>
           <p className="page-description">
-            The employer hasn't set their budget yet. Please wait or contact them.
+            You need a link from an employer to join their negotiation.
           </p>
         </div>
 
         <div className="card">
           <div className="status-waiting">
-            <div className="status-icon">⏳</div>
-            <div className="status-title">Negotiation not ready</div>
+            <div className="status-icon">🔗</div>
+            <div className="status-title">No negotiation found</div>
             <div className="status-description">
-              Check back soon or ask the employer to complete their part
+              Ask the employer to send you a negotiation link
             </div>
           </div>
         </div>
@@ -62,8 +75,119 @@ export function CandidateFlow({ negotiation, onSubmit, onReset }: CandidateFlowP
     );
   }
 
-  // Ready for candidate input
-  if (negotiation.status === 'pending_candidate') {
+  // Waiting for negotiation data to load
+  if (!negotiation) {
+    return (
+      <div className="card">
+        <div className="status-waiting">
+          <div className="status-icon">⏳</div>
+          <div className="status-title">Loading...</div>
+          <div className="status-description">
+            Fetching negotiation data from chain
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Negotiation exists but employer hasn't submitted budget yet
+  if (negotiation.status === 'created') {
+    return (
+      <>
+        <div className="page-header">
+          <h1 className="page-title">Waiting for employer</h1>
+          <p className="page-description">
+            The employer hasn't set their budget yet. Please wait.
+          </p>
+        </div>
+
+        <div className="card">
+          <div className="status-waiting">
+            <div className="status-icon">⏳</div>
+            <div className="status-title">Negotiation not ready</div>
+            <div className="status-description">
+              The employer needs to submit their budget first
+            </div>
+          </div>
+        </div>
+
+        <button className="btn btn-secondary btn-full" onClick={onReset} style={{ marginTop: '1rem' }}>
+          Go to Homepage
+        </button>
+      </>
+    );
+  }
+
+  // Need to connect wallet
+  if (!connected) {
+    return (
+      <>
+        <div className="page-header">
+          <h1 className="page-title">Join Negotiation</h1>
+          <p className="page-description">
+            Connect your wallet to participate in this negotiation.
+          </p>
+        </div>
+
+        <div className="card">
+          <div className="status-waiting">
+            <div className="status-icon">🔗</div>
+            <div className="status-title">Connect Your Wallet</div>
+            <div className="status-description">
+              Connect your Solana wallet to continue
+            </div>
+          </div>
+        </div>
+
+        <div className="privacy-badge" style={{ marginTop: '1.5rem' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          <span>Your salary requirement will remain private</span>
+        </div>
+      </>
+    );
+  }
+
+  // Need to join the negotiation first
+  if (!hasJoined && negotiation.status !== 'complete' && negotiation.status !== 'finalized') {
+    return (
+      <>
+        <div className="page-header">
+          <h1 className="page-title">Join Negotiation</h1>
+          <p className="page-description">
+            The employer has created a negotiation. Join to submit your salary requirement.
+          </p>
+        </div>
+
+        <div className="card">
+          <p className="card-text">
+            By joining, you'll be able to submit your minimum salary requirement.
+            The comparison will happen securely without revealing either party's number.
+          </p>
+          <button 
+            className="btn btn-primary btn-full btn-large"
+            onClick={onJoin}
+            disabled={loading}
+          >
+            {loading ? 'Joining...' : 'Join Negotiation'}
+          </button>
+        </div>
+
+        <div className="privacy-badge" style={{ marginTop: '1.5rem' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          <span>All values processed in secure TEE environment</span>
+        </div>
+      </>
+    );
+  }
+
+  // Ready for candidate input (joined but not submitted)
+  if (hasJoined && negotiation.status !== 'complete' && negotiation.status !== 'finalized') {
     return (
       <>
         <div className="page-header">
@@ -95,10 +219,22 @@ export function CandidateFlow({ negotiation, onSubmit, onReset }: CandidateFlowP
         <button 
           className="btn btn-primary btn-full btn-large"
           onClick={handleSubmit}
-          disabled={!inputValue || parseInt(inputValue) <= 0}
+          disabled={!inputValue || parseInt(inputValue) <= 0 || loading}
         >
-          Check for Match
+          {loading ? 'Submitting...' : 'Check for Match'}
         </button>
+
+        {txSignature && (
+          <div className="tx-link" style={{ marginTop: '1rem' }}>
+            <a 
+              href={`https://solscan.io/tx/${txSignature}?cluster=devnet`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              View transaction
+            </a>
+          </div>
+        )}
 
         <div className="privacy-badge" style={{ marginTop: '1.5rem' }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -112,8 +248,8 @@ export function CandidateFlow({ negotiation, onSubmit, onReset }: CandidateFlowP
   }
 
   // Show result
-  if (negotiation.status === 'complete') {
-    const isMatch = negotiation.result === true;
+  if (negotiation.status === 'complete' || negotiation.status === 'finalized') {
+    const isMatch = negotiation.result === 'match';
 
     return (
       <>
@@ -135,6 +271,18 @@ export function CandidateFlow({ negotiation, onSubmit, onReset }: CandidateFlowP
               : 'Unfortunately, the employer\'s budget doesn\'t meet your minimum requirement.'}
           </p>
         </div>
+
+        {txSignature && (
+          <div className="tx-link" style={{ marginTop: '1rem' }}>
+            <a 
+              href={`https://solscan.io/tx/${txSignature}?cluster=devnet`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              View transaction
+            </a>
+          </div>
+        )}
 
         <button className="btn btn-secondary btn-full" onClick={onReset} style={{ marginTop: '1rem' }}>
           Go to Homepage

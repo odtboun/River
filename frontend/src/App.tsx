@@ -1,116 +1,199 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { Connection } from '@solana/web3.js';
+import { BN } from '@coral-xyz/anchor';
 import { EmployerFlow } from './components/EmployerFlow';
 import { CandidateFlow } from './components/CandidateFlow';
 import { LandingPage } from './components/LandingPage';
+import { RiverClient, NegotiationData, getNegotiationPDA, fetchNegotiation, RPC_ENDPOINT } from './lib';
 
 type View = 'landing' | 'employer' | 'candidate';
 
-interface NegotiationData {
-  id: string;
-  employerMax: number | null;
-  candidateMin: number | null;
-  status: 'pending_employer' | 'pending_candidate' | 'complete';
-  result: boolean | null;
-}
-
-function generateId(): string {
-  return Math.random().toString(36).substring(2, 10);
-}
-
-// Encode negotiation data for URL (base64)
-function encodeNegotiation(data: NegotiationData): string {
-  return btoa(JSON.stringify(data));
-}
-
-// Decode negotiation data from URL
-function decodeNegotiation(encoded: string): NegotiationData | null {
-  try {
-    return JSON.parse(atob(encoded));
-  } catch {
-    return null;
-  }
-}
-
 function App() {
+  const { publicKey, connected } = useWallet();
+  const wallet = useWallet();
+  
   const [view, setView] = useState<View>('landing');
   const [negotiation, setNegotiation] = useState<NegotiationData | null>(null);
+  const [negotiationId, setNegotiationId] = useState<BN | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [txSignature, setTxSignature] = useState<string | null>(null);
 
-  // Check URL for negotiation data on load
+  // Check URL for negotiation ID on load
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const encoded = params.get('d');
+    const idParam = params.get('n');
     
-    if (encoded) {
-      const data = decodeNegotiation(encoded);
-      if (data) {
-        setNegotiation(data);
-        // If employer has set their max, show candidate flow
-        if (data.employerMax !== null) {
-          setView('candidate');
-        } else {
-          setView('employer');
-        }
+    if (idParam) {
+      try {
+        const id = new BN(idParam);
+        setNegotiationId(id);
+        // Load negotiation data
+        loadNegotiation(id);
+        setView('candidate');
+      } catch {
+        console.error('Invalid negotiation ID in URL');
       }
     }
   }, []);
 
-  // Update URL when negotiation changes (for employer flow)
-  const updateUrl = useCallback((data: NegotiationData) => {
-    const encoded = encodeNegotiation(data);
-    const url = `${window.location.origin}${window.location.pathname}?d=${encoded}`;
-    window.history.replaceState({}, '', url);
+  // Load negotiation from chain
+  const loadNegotiation = useCallback(async (id: BN) => {
+    try {
+      const [pda] = getNegotiationPDA(id);
+      const conn = new Connection(RPC_ENDPOINT, 'confirmed');
+      const data = await fetchNegotiation(conn, pda);
+      if (data) {
+        setNegotiation(data);
+      }
+    } catch (err) {
+      console.error('Failed to load negotiation:', err);
+    }
   }, []);
 
-  const getShareUrl = useCallback((data: NegotiationData): string => {
-    const encoded = encodeNegotiation(data);
-    return `${window.location.origin}${window.location.pathname}?d=${encoded}`;
+  // Refresh negotiation data periodically
+  useEffect(() => {
+    if (!negotiationId) return;
+
+    const interval = setInterval(() => {
+      loadNegotiation(negotiationId);
+    }, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [negotiationId, loadNegotiation]);
+
+  // Generate share URL
+  const getShareUrl = useCallback((id: BN): string => {
+    return `${window.location.origin}${window.location.pathname}?n=${id.toString()}`;
   }, []);
 
+  // Handle employer starting a new negotiation
   const handleStartEmployer = useCallback(() => {
-    const newNegotiation: NegotiationData = {
-      id: generateId(),
-      employerMax: null,
-      candidateMin: null,
-      status: 'pending_employer',
-      result: null,
-    };
-    setNegotiation(newNegotiation);
     setView('employer');
+    setNegotiation(null);
+    setNegotiationId(null);
+    setError(null);
+    setTxSignature(null);
   }, []);
 
-  const handleEmployerSubmit = useCallback((maxBudget: number) => {
-    if (!negotiation) return;
-    
-    const updated: NegotiationData = {
-      ...negotiation,
-      employerMax: maxBudget,
-      status: 'pending_candidate',
-    };
-    setNegotiation(updated);
-    updateUrl(updated);
-  }, [negotiation, updateUrl]);
+  // Handle employer creating negotiation on-chain
+  const handleCreateNegotiation = useCallback(async () => {
+    if (!connected || !wallet.publicKey) {
+      setError('Please connect your wallet first');
+      return;
+    }
 
-  const handleCandidateSubmit = useCallback((minSalary: number) => {
-    if (!negotiation || negotiation.employerMax === null) return;
-    
-    const result = minSalary <= negotiation.employerMax;
-    const updated: NegotiationData = {
-      ...negotiation,
-      candidateMin: minSalary,
-      status: 'complete',
-      result,
-    };
-    setNegotiation(updated);
-    updateUrl(updated);
-  }, [negotiation, updateUrl]);
+    setLoading(true);
+    setError(null);
 
+    try {
+      const client = new RiverClient(wallet as any);
+      const { negotiationId: newId, tx } = await client.createNegotiation();
+      
+      setNegotiationId(newId);
+      setTxSignature(tx);
+      
+      // Update URL
+      window.history.replaceState({}, '', `?n=${newId.toString()}`);
+      
+      // Load the negotiation data
+      await loadNegotiation(newId);
+    } catch (err: any) {
+      console.error('Failed to create negotiation:', err);
+      setError(err.message || 'Failed to create negotiation');
+    } finally {
+      setLoading(false);
+    }
+  }, [connected, wallet, loadNegotiation]);
+
+  // Handle employer submitting budget
+  const handleEmployerSubmit = useCallback(async (maxBudget: number) => {
+    if (!connected || !wallet.publicKey || !negotiationId) {
+      setError('Please connect your wallet first');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const client = new RiverClient(wallet as any);
+      const tx = await client.submitEmployerBudget(negotiationId, maxBudget);
+      setTxSignature(tx);
+      
+      // Reload negotiation data
+      await loadNegotiation(negotiationId);
+    } catch (err: any) {
+      console.error('Failed to submit budget:', err);
+      setError(err.message || 'Failed to submit budget');
+    } finally {
+      setLoading(false);
+    }
+  }, [connected, wallet, negotiationId, loadNegotiation]);
+
+  // Handle candidate joining negotiation
+  const handleJoinNegotiation = useCallback(async () => {
+    if (!connected || !wallet.publicKey || !negotiationId) {
+      setError('Please connect your wallet first');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const client = new RiverClient(wallet as any);
+      const tx = await client.joinNegotiation(negotiationId);
+      setTxSignature(tx);
+      
+      // Reload negotiation data
+      await loadNegotiation(negotiationId);
+    } catch (err: any) {
+      console.error('Failed to join negotiation:', err);
+      setError(err.message || 'Failed to join negotiation');
+    } finally {
+      setLoading(false);
+    }
+  }, [connected, wallet, negotiationId, loadNegotiation]);
+
+  // Handle candidate submitting requirement
+  const handleCandidateSubmit = useCallback(async (minSalary: number) => {
+    if (!connected || !wallet.publicKey || !negotiationId) {
+      setError('Please connect your wallet first');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const client = new RiverClient(wallet as any);
+      const tx = await client.submitCandidateRequirement(negotiationId, minSalary);
+      setTxSignature(tx);
+      
+      // Reload negotiation data
+      await loadNegotiation(negotiationId);
+    } catch (err: any) {
+      console.error('Failed to submit requirement:', err);
+      setError(err.message || 'Failed to submit requirement');
+    } finally {
+      setLoading(false);
+    }
+  }, [connected, wallet, negotiationId, loadNegotiation]);
+
+  // Reset to landing page
   const handleReset = useCallback(() => {
     setView('landing');
     setNegotiation(null);
+    setNegotiationId(null);
+    setError(null);
+    setTxSignature(null);
     window.history.replaceState({}, '', window.location.pathname);
   }, []);
 
-  const shareUrl = negotiation ? getShareUrl(negotiation) : null;
+  const shareUrl = negotiationId ? getShareUrl(negotiationId) : null;
 
   return (
     <div className="app">
@@ -120,14 +203,24 @@ function App() {
             <img src="/river.svg" alt="River" className="logo-icon" />
             <span className="logo-text">River</span>
           </a>
-          <div className="network-badge">
-            <span className="network-dot"></span>
-            Solana Devnet
+          <div className="header-right">
+            <div className="network-badge">
+              <span className="network-dot"></span>
+              Solana Devnet
+            </div>
+            <WalletMultiButton />
           </div>
         </div>
       </header>
 
       <main className="main">
+        {error && (
+          <div className="error-banner">
+            {error}
+            <button onClick={() => setError(null)} className="error-close">×</button>
+          </div>
+        )}
+
         {view === 'landing' && (
           <LandingPage 
             onStartEmployer={handleStartEmployer}
@@ -137,8 +230,13 @@ function App() {
         
         {view === 'employer' && (
           <EmployerFlow
+            connected={connected}
             negotiation={negotiation}
+            negotiationId={negotiationId}
             shareUrl={shareUrl}
+            loading={loading}
+            txSignature={txSignature}
+            onCreateNegotiation={handleCreateNegotiation}
             onSubmit={handleEmployerSubmit}
             onReset={handleReset}
           />
@@ -146,27 +244,33 @@ function App() {
         
         {view === 'candidate' && (
           <CandidateFlow
+            connected={connected}
             negotiation={negotiation}
+            negotiationId={negotiationId}
+            loading={loading}
+            txSignature={txSignature}
+            onJoin={handleJoinNegotiation}
             onSubmit={handleCandidateSubmit}
             onReset={handleReset}
+            walletAddress={publicKey?.toBase58() || null}
           />
         )}
       </main>
 
       <footer className="footer">
         <div className="footer-links">
-          <a href="https://noir-lang.org" target="_blank" rel="noopener noreferrer" className="footer-link">
-            Noir
+          <a href="https://magicblock.gg" target="_blank" rel="noopener noreferrer" className="footer-link">
+            MagicBlock
           </a>
           <a href="https://solana.com" target="_blank" rel="noopener noreferrer" className="footer-link">
             Solana
           </a>
-          <a href="https://github.com/reilabs/sunspot" target="_blank" rel="noopener noreferrer" className="footer-link">
-            Sunspot
+          <a href="https://github.com/odtboun/River" target="_blank" rel="noopener noreferrer" className="footer-link">
+            GitHub
           </a>
         </div>
         <p className="footer-text">
-          Zero-knowledge salary negotiation. Your numbers stay private.
+          Confidential salary negotiation powered by TEE. Your numbers stay private.
         </p>
       </footer>
     </div>

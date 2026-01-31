@@ -1,21 +1,30 @@
 import { useState, useCallback } from 'react';
-
-interface NegotiationData {
-  id: string;
-  employerMax: number | null;
-  candidateMin: number | null;
-  status: 'pending_employer' | 'pending_candidate' | 'complete';
-  result: boolean | null;
-}
+import { BN } from '@coral-xyz/anchor';
+import { NegotiationData } from '../lib';
 
 interface EmployerFlowProps {
+  connected: boolean;
   negotiation: NegotiationData | null;
+  negotiationId: BN | null;
   shareUrl: string | null;
-  onSubmit: (maxBudget: number) => void;
+  loading: boolean;
+  txSignature: string | null;
+  onCreateNegotiation: () => Promise<void>;
+  onSubmit: (maxBudget: number) => Promise<void>;
   onReset: () => void;
 }
 
-export function EmployerFlow({ negotiation, shareUrl, onSubmit, onReset }: EmployerFlowProps) {
+export function EmployerFlow({ 
+  connected, 
+  negotiation, 
+  negotiationId,
+  shareUrl, 
+  loading,
+  txSignature,
+  onCreateNegotiation, 
+  onSubmit, 
+  onReset 
+}: EmployerFlowProps) {
   const [inputValue, setInputValue] = useState('');
   const [copied, setCopied] = useState(false);
 
@@ -24,10 +33,10 @@ export function EmployerFlow({ negotiation, shareUrl, onSubmit, onReset }: Emplo
     setInputValue(raw);
   }, []);
 
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = useCallback(async () => {
     const value = parseInt(inputValue);
     if (value > 0) {
-      onSubmit(value);
+      await onSubmit(value);
     }
   }, [inputValue, onSubmit]);
 
@@ -44,14 +53,61 @@ export function EmployerFlow({ negotiation, shareUrl, onSubmit, onReset }: Emplo
     return parseInt(val).toLocaleString('en-US');
   };
 
-  // Step 1: Enter budget
-  if (!negotiation || negotiation.status === 'pending_employer') {
+  // Step 0: Connect wallet & create negotiation
+  if (!connected || !negotiationId) {
+    return (
+      <>
+        <div className="page-header">
+          <h1 className="page-title">Start a Negotiation</h1>
+          <p className="page-description">
+            Create a private salary negotiation. Your budget will be kept confidential.
+          </p>
+        </div>
+
+        {!connected ? (
+          <div className="card">
+            <div className="status-waiting">
+              <div className="status-icon">🔗</div>
+              <div className="status-title">Connect Your Wallet</div>
+              <div className="status-description">
+                Connect your Solana wallet to create a negotiation
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="card">
+            <p className="card-text">
+              You'll create a negotiation session on Solana. This requires a small transaction fee.
+            </p>
+            <button 
+              className="btn btn-primary btn-full btn-large"
+              onClick={onCreateNegotiation}
+              disabled={loading}
+            >
+              {loading ? 'Creating...' : 'Create Negotiation'}
+            </button>
+          </div>
+        )}
+
+        <div className="privacy-badge" style={{ marginTop: '1.5rem' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          <span>All values processed in secure TEE environment</span>
+        </div>
+      </>
+    );
+  }
+
+  // Step 1: Enter budget (negotiation created but budget not submitted)
+  if (negotiation?.status === 'created' || negotiation?.status === 'ready') {
     return (
       <>
         <div className="page-header">
           <h1 className="page-title">Set your budget</h1>
           <p className="page-description">
-            Enter the maximum salary you're willing to offer. This number will remain private.
+            Enter the maximum salary you're willing to offer. This number will be processed securely.
           </p>
         </div>
 
@@ -77,10 +133,22 @@ export function EmployerFlow({ negotiation, shareUrl, onSubmit, onReset }: Emplo
         <button 
           className="btn btn-primary btn-full btn-large"
           onClick={handleSubmit}
-          disabled={!inputValue || parseInt(inputValue) <= 0}
+          disabled={!inputValue || parseInt(inputValue) <= 0 || loading}
         >
-          Lock in Budget
+          {loading ? 'Submitting...' : 'Lock in Budget'}
         </button>
+
+        {txSignature && (
+          <div className="tx-link" style={{ marginTop: '1rem' }}>
+            <a 
+              href={`https://solscan.io/tx/${txSignature}?cluster=devnet`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              View creation transaction
+            </a>
+          </div>
+        )}
 
         <div className="privacy-badge" style={{ marginTop: '1.5rem' }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -93,14 +161,15 @@ export function EmployerFlow({ negotiation, shareUrl, onSubmit, onReset }: Emplo
     );
   }
 
-  // Step 2: Share link & wait
-  if (negotiation.status === 'pending_candidate') {
+  // Step 2: Share link & wait for candidate
+  if (negotiation?.status === 'employer_submitted' || 
+      (negotiation && !negotiation.candidate && negotiation.status !== 'complete' && negotiation.status !== 'finalized')) {
     return (
       <>
         <div className="page-header">
           <h1 className="page-title">Share with candidate</h1>
           <p className="page-description">
-            Your budget is locked. Send this link to your candidate so they can submit their requirement.
+            Your budget is locked on-chain. Send this link to your candidate.
           </p>
         </div>
 
@@ -126,10 +195,22 @@ export function EmployerFlow({ negotiation, shareUrl, onSubmit, onReset }: Emplo
             <div className="status-icon">⏳</div>
             <div className="status-title">Waiting for candidate</div>
             <div className="status-description">
-              The candidate hasn't submitted their requirement yet
+              The candidate needs to connect their wallet and submit their requirement
             </div>
           </div>
         </div>
+
+        {txSignature && (
+          <div className="tx-link" style={{ marginTop: '1rem' }}>
+            <a 
+              href={`https://solscan.io/tx/${txSignature}?cluster=devnet`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              View transaction
+            </a>
+          </div>
+        )}
 
         <button className="btn btn-secondary btn-full" onClick={onReset} style={{ marginTop: '1rem' }}>
           Start New Negotiation
@@ -141,8 +222,8 @@ export function EmployerFlow({ negotiation, shareUrl, onSubmit, onReset }: Emplo
   }
 
   // Step 3: Show result
-  if (negotiation.status === 'complete') {
-    const isMatch = negotiation.result === true;
+  if (negotiation?.status === 'complete' || negotiation?.status === 'finalized') {
+    const isMatch = negotiation.result === 'match';
 
     return (
       <>
@@ -165,6 +246,18 @@ export function EmployerFlow({ negotiation, shareUrl, onSubmit, onReset }: Emplo
           </p>
         </div>
 
+        {txSignature && (
+          <div className="tx-link" style={{ marginTop: '1rem' }}>
+            <a 
+              href={`https://solscan.io/tx/${txSignature}?cluster=devnet`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              View transaction
+            </a>
+          </div>
+        )}
+
         <button className="btn btn-primary btn-full btn-large" onClick={onReset}>
           Start New Negotiation
         </button>
@@ -172,5 +265,16 @@ export function EmployerFlow({ negotiation, shareUrl, onSubmit, onReset }: Emplo
     );
   }
 
-  return null;
+  // Fallback: waiting for data
+  return (
+    <div className="card">
+      <div className="status-waiting">
+        <div className="status-icon">⏳</div>
+        <div className="status-title">Loading...</div>
+        <div className="status-description">
+          Fetching negotiation data from chain
+        </div>
+      </div>
+    </div>
+  );
 }
