@@ -1,18 +1,23 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useWallet } from '@solana/wallet-adapter-react';
-import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { Connection } from '@solana/web3.js';
 import { BN } from '@coral-xyz/anchor';
 import { EmployerFlow } from './components/EmployerFlow';
 import { CandidateFlow } from './components/CandidateFlow';
 import { LandingPage } from './components/LandingPage';
+import { WalletButton } from './components/WalletConnector';
+import { useRiverWallet } from './hooks/useRiverWallet';
 import { RiverClient, NegotiationData, getNegotiationPDA, fetchNegotiation, RPC_ENDPOINT } from './lib';
 
 type View = 'landing' | 'employer' | 'candidate';
 
 function App() {
-  const { publicKey, connected } = useWallet();
-  const wallet = useWallet();
+  const { 
+    connected, 
+    publicKey, 
+    anchorWallet,
+    isBurnerWallet,
+    signMessage 
+  } = useRiverWallet();
   
   const [view, setView] = useState<View>('landing');
   const [negotiation, setNegotiation] = useState<NegotiationData | null>(null);
@@ -27,11 +32,16 @@ function App() {
 
   // Initialize TEE when wallet connects
   useEffect(() => {
-    if (connected && wallet.publicKey && !clientRef.current) {
+    if (connected && anchorWallet && !clientRef.current) {
       const initTee = async () => {
         setTeeStatus('connecting');
         try {
-          const client = new RiverClient(wallet as any);
+          // Create client with sign message capability
+          const walletWithSignMessage = {
+            ...anchorWallet,
+            signMessage,
+          };
+          const client = new RiverClient(walletWithSignMessage as any);
           clientRef.current = client;
           
           // Try to initialize TEE
@@ -53,7 +63,7 @@ function App() {
       clientRef.current = null;
       setTeeStatus('disconnected');
     }
-  }, [connected, wallet]);
+  }, [connected, anchorWallet, signMessage]);
 
   // Check URL for negotiation ID on load
   useEffect(() => {
@@ -115,17 +125,21 @@ function App() {
   // Get or create client
   const getClient = useCallback(() => {
     if (clientRef.current) return clientRef.current;
-    if (connected && wallet.publicKey) {
-      clientRef.current = new RiverClient(wallet as any);
+    if (connected && anchorWallet) {
+      const walletWithSignMessage = {
+        ...anchorWallet,
+        signMessage,
+      };
+      clientRef.current = new RiverClient(walletWithSignMessage as any);
       return clientRef.current;
     }
     return null;
-  }, [connected, wallet]);
+  }, [connected, anchorWallet, signMessage]);
 
   // Handle employer creating negotiation on-chain
   const handleCreateNegotiation = useCallback(async () => {
-    if (!connected || !wallet.publicKey) {
-      setError('Please connect your wallet first');
+    if (!connected || !publicKey) {
+      setError('Please connect first');
       return;
     }
 
@@ -152,12 +166,12 @@ function App() {
     } finally {
       setLoading(false);
     }
-  }, [connected, wallet, loadNegotiation, getClient]);
+  }, [connected, publicKey, loadNegotiation, getClient]);
 
   // Handle employer submitting budget
   const handleEmployerSubmit = useCallback(async (maxBudget: number) => {
-    if (!connected || !wallet.publicKey || !negotiationId) {
-      setError('Please connect your wallet first');
+    if (!connected || !publicKey || !negotiationId) {
+      setError('Please connect first');
       return;
     }
 
@@ -179,12 +193,12 @@ function App() {
     } finally {
       setLoading(false);
     }
-  }, [connected, wallet, negotiationId, loadNegotiation, getClient]);
+  }, [connected, publicKey, negotiationId, loadNegotiation, getClient]);
 
   // Handle candidate joining negotiation
   const handleJoinNegotiation = useCallback(async () => {
-    if (!connected || !wallet.publicKey || !negotiationId) {
-      setError('Please connect your wallet first');
+    if (!connected || !publicKey || !negotiationId) {
+      setError('Please connect first');
       return;
     }
 
@@ -206,12 +220,12 @@ function App() {
     } finally {
       setLoading(false);
     }
-  }, [connected, wallet, negotiationId, loadNegotiation, getClient]);
+  }, [connected, publicKey, negotiationId, loadNegotiation, getClient]);
 
   // Handle candidate submitting requirement
   const handleCandidateSubmit = useCallback(async (minSalary: number) => {
-    if (!connected || !wallet.publicKey || !negotiationId) {
-      setError('Please connect your wallet first');
+    if (!connected || !publicKey || !negotiationId) {
+      setError('Please connect first');
       return;
     }
 
@@ -233,7 +247,7 @@ function App() {
     } finally {
       setLoading(false);
     }
-  }, [connected, wallet, negotiationId, loadNegotiation, getClient]);
+  }, [connected, publicKey, negotiationId, loadNegotiation, getClient]);
 
   // Reset to landing page
   const handleReset = useCallback(() => {
@@ -274,7 +288,7 @@ function App() {
           <div className="header-right">
             <div className="network-badge">
               <span className="network-dot"></span>
-              Solana Devnet
+              Devnet
             </div>
             {connected && (
               <div className={`tee-badge ${teeDisplay.className}`}>
@@ -282,7 +296,7 @@ function App() {
                 {teeDisplay.text}
               </div>
             )}
-            <WalletMultiButton />
+            <WalletButton />
           </div>
         </div>
       </header>
@@ -311,6 +325,7 @@ function App() {
             loading={loading}
             txSignature={txSignature}
             teeActive={teeStatus === 'connected'}
+            isBurnerWallet={isBurnerWallet}
             onCreateNegotiation={handleCreateNegotiation}
             onSubmit={handleEmployerSubmit}
             onReset={handleReset}
@@ -325,6 +340,7 @@ function App() {
             loading={loading}
             txSignature={txSignature}
             teeActive={teeStatus === 'connected'}
+            isBurnerWallet={isBurnerWallet}
             onJoin={handleJoinNegotiation}
             onSubmit={handleCandidateSubmit}
             onReset={handleReset}

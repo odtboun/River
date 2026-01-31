@@ -103,24 +103,214 @@ body {
   border-radius: 50%;
 }
 
-/* Wallet Adapter Button Overrides */
+/* Custom Wallet Button */
+.wallet-btn-container {
+  position: relative;
+}
+
+.wallet-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.wallet-btn:hover:not(:disabled) {
+  background: #1f1f1f;
+}
+
+.wallet-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.wallet-btn.connected {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.wallet-btn.connected:hover {
+  background: var(--color-bg-secondary);
+}
+
+.wallet-icon {
+  font-size: 1rem;
+}
+
+.wallet-bal {
+  padding-left: 0.5rem;
+  border-left: 1px solid var(--color-border);
+  margin-left: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+/* Wallet Menu */
+.wallet-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+
+.wallet-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  min-width: 280px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  z-index: 50;
+  overflow: hidden;
+}
+
+.wallet-menu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.wallet-menu-close {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  padding: 0;
+  line-height: 1;
+}
+
+.wallet-menu-address {
+  padding: 0.75rem 1rem;
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  word-break: break-all;
+  cursor: pointer;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.wallet-menu-address:hover {
+  background: var(--color-bg-secondary);
+}
+
+.wallet-menu-address small {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--color-text-muted);
+  font-family: 'Inter', sans-serif;
+}
+
+.wallet-menu-balance {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  font-weight: 500;
+}
+
+.wallet-menu-balance button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--color-text-muted);
+}
+
+.wallet-menu-balance button:hover {
+  color: var(--color-text);
+}
+
+.wallet-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--color-text);
+  text-align: left;
+}
+
+.wallet-menu-item:hover {
+  background: var(--color-bg-secondary);
+}
+
+.wallet-menu-item.primary {
+  background: var(--color-bg-secondary);
+}
+
+.wallet-menu-item.primary div {
+  display: flex;
+  flex-direction: column;
+}
+
+.wallet-menu-item.primary small {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  font-weight: normal;
+}
+
+.wallet-menu-item.danger {
+  color: var(--color-error);
+}
+
+.wallet-menu-item img {
+  border-radius: 4px;
+}
+
+.wallet-menu-divider {
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.wallet-menu-empty {
+  padding: 1rem;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+/* Wallet Adapter Button Overrides (for fallback) */
 .wallet-adapter-button {
-  background: var(--color-primary) !important;
-  color: white !important;
+  background: var(--color-bg-tertiary) !important;
+  color: var(--color-text) !important;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
   font-size: 0.8125rem !important;
   font-weight: 500 !important;
   padding: 0.5rem 1rem !important;
   border-radius: 8px !important;
+  border: 1px solid var(--color-border) !important;
   height: auto !important;
 }
 
 .wallet-adapter-button:hover:not(:disabled) {
-  background: #1f1f1f !important;
+  background: var(--color-bg-secondary) !important;
 }
 
 .wallet-adapter-button-trigger {
-  background: var(--color-primary) !important;
+  background: var(--color-bg-tertiary) !important;
 }
 
 .wallet-adapter-dropdown-list {

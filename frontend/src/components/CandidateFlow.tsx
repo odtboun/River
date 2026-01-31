@@ -9,6 +9,7 @@ interface CandidateFlowProps {
   loading: boolean;
   txSignature: string | null;
   teeActive?: boolean;
+  isBurnerWallet?: boolean;
   walletAddress: string | null;
   onJoin: () => Promise<void>;
   onSubmit: (minSalary: number) => Promise<void>;
@@ -22,11 +23,13 @@ export function CandidateFlow({
   loading,
   txSignature,
   teeActive = false,
+  isBurnerWallet: _isBurnerWallet = false,
   walletAddress,
   onJoin,
   onSubmit, 
   onReset 
 }: CandidateFlowProps) {
+  void _isBurnerWallet; // Reserved for future use
   const [inputValue, setInputValue] = useState('');
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -120,23 +123,23 @@ export function CandidateFlow({
     );
   }
 
-  // Need to connect wallet
+  // Need to connect
   if (!connected) {
     return (
       <>
         <div className="page-header">
           <h1 className="page-title">Join Negotiation</h1>
           <p className="page-description">
-            Connect your wallet to participate in this negotiation.
+            Get started to participate in this negotiation.
           </p>
         </div>
 
         <div className="card">
           <div className="status-waiting">
-            <div className="status-icon">🔗</div>
-            <div className="status-title">Connect Your Wallet</div>
+            <div className="status-icon">👋</div>
+            <div className="status-title">Get Started</div>
             <div className="status-description">
-              Connect your Solana wallet to continue
+              Click "Quick Start" above - no wallet needed!
             </div>
           </div>
         </div>

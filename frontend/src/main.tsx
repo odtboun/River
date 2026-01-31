@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import { WalletProvider } from './components/WalletProvider';
+import { RiverWalletProvider } from './hooks/useRiverWallet';
 import './styles/index.css';
 
 // Polyfill Buffer for browser
@@ -11,7 +12,9 @@ window.Buffer = Buffer;
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <WalletProvider>
-      <App />
+      <RiverWalletProvider>
+        <App />
+      </RiverWalletProvider>
     </WalletProvider>
   </React.StrictMode>
 );

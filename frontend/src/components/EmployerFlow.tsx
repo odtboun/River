@@ -10,6 +10,7 @@ interface EmployerFlowProps {
   loading: boolean;
   txSignature: string | null;
   teeActive?: boolean;
+  isBurnerWallet?: boolean;
   onCreateNegotiation: () => Promise<void>;
   onSubmit: (maxBudget: number) => Promise<void>;
   onReset: () => void;
@@ -23,10 +24,12 @@ export function EmployerFlow({
   loading,
   txSignature,
   teeActive = false,
+  isBurnerWallet: _isBurnerWallet = false,
   onCreateNegotiation, 
   onSubmit, 
   onReset 
 }: EmployerFlowProps) {
+  void _isBurnerWallet; // Reserved for future use
   const [inputValue, setInputValue] = useState('');
   const [copied, setCopied] = useState(false);
 
@@ -69,10 +72,10 @@ export function EmployerFlow({
         {!connected ? (
           <div className="card">
             <div className="status-waiting">
-              <div className="status-icon">🔗</div>
-              <div className="status-title">Connect Your Wallet</div>
+              <div className="status-icon">👋</div>
+              <div className="status-title">Get Started</div>
               <div className="status-description">
-                Connect your Solana wallet to create a negotiation
+                Click "Quick Start" above to begin - no wallet needed!
               </div>
             </div>
           </div>
