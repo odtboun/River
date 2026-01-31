@@ -1,8 +1,27 @@
-import { Keypair, Connection, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
+import { Keypair, Connection, LAMPORTS_PER_SOL, PublicKey, Transaction, SystemProgram, sendAndConfirmTransaction } from '@solana/web3.js';
 import { RPC_ENDPOINT } from './river-program';
 
 const BURNER_WALLET_KEY = 'river_burner_wallet';
-const MIN_BALANCE_SOL = 0.05; // Minimum balance to maintain
+const MIN_BALANCE_SOL = 0.01; // Minimum balance to maintain (reduced for efficiency)
+const FUND_AMOUNT_SOL = 0.02; // Amount to transfer from funder (enough for ~20 transactions)
+
+/**
+ * Get the funder keypair from environment variable
+ */
+function getFunderKeypair(): Keypair | null {
+  try {
+    const secretKeyStr = import.meta.env.VITE_FUNDER_SECRET_KEY;
+    if (!secretKeyStr) {
+      console.warn('No funder wallet configured (VITE_FUNDER_SECRET_KEY)');
+      return null;
+    }
+    const secretKey = new Uint8Array(JSON.parse(secretKeyStr));
+    return Keypair.fromSecretKey(secretKey);
+  } catch (err) {
+    console.error('Failed to load funder keypair:', err);
+    return null;
+  }
+}
 
 export interface BurnerWalletState {
   publicKey: string;
@@ -69,18 +88,60 @@ export async function getWalletBalance(publicKey: PublicKey): Promise<number> {
 }
 
 /**
- * Request an airdrop for devnet
+ * Fund a wallet from the project funder wallet
+ * This is the preferred method - more reliable than devnet airdrop
  */
-export async function requestAirdrop(publicKey: PublicKey, amountSol: number = 1): Promise<string | null> {
+export async function fundFromFunder(recipientPublicKey: PublicKey): Promise<string | null> {
+  const funder = getFunderKeypair();
+  if (!funder) {
+    console.warn('Funder wallet not available, falling back to airdrop');
+    return null;
+  }
+
   try {
     const connection = new Connection(RPC_ENDPOINT, 'confirmed');
     
-    // Check current balance first
-    const currentBalance = await connection.getBalance(publicKey);
-    if (currentBalance >= MIN_BALANCE_SOL * LAMPORTS_PER_SOL) {
-      console.log('Wallet already has sufficient balance');
+    // Check funder balance
+    const funderBalance = await connection.getBalance(funder.publicKey);
+    const requiredLamports = FUND_AMOUNT_SOL * LAMPORTS_PER_SOL;
+    
+    if (funderBalance < requiredLamports + 5000) { // 5000 for tx fee
+      console.warn(`Funder balance too low: ${funderBalance / LAMPORTS_PER_SOL} SOL`);
       return null;
     }
+    
+    // Create transfer transaction
+    const transaction = new Transaction().add(
+      SystemProgram.transfer({
+        fromPubkey: funder.publicKey,
+        toPubkey: recipientPublicKey,
+        lamports: requiredLamports,
+      })
+    );
+    
+    // Send and confirm
+    console.log(`Funding ${recipientPublicKey.toBase58()} with ${FUND_AMOUNT_SOL} SOL from funder...`);
+    const signature = await sendAndConfirmTransaction(
+      connection,
+      transaction,
+      [funder],
+      { commitment: 'confirmed' }
+    );
+    
+    console.log('Funding successful:', signature);
+    return signature;
+  } catch (err) {
+    console.error('Failed to fund from funder:', err);
+    return null;
+  }
+}
+
+/**
+ * Request an airdrop for devnet (fallback method)
+ */
+export async function requestAirdrop(publicKey: PublicKey, amountSol: number = 0.5): Promise<string | null> {
+  try {
+    const connection = new Connection(RPC_ENDPOINT, 'confirmed');
     
     // Request airdrop
     console.log(`Requesting airdrop of ${amountSol} SOL to ${publicKey.toBase58()}...`);
@@ -95,22 +156,6 @@ export async function requestAirdrop(publicKey: PublicKey, amountSol: number = 1
     
     return signature;
   } catch (err: any) {
-    // Airdrop rate limiting is common on devnet
-    if (err.message?.includes('429') || err.message?.includes('rate')) {
-      console.warn('Airdrop rate limited, trying smaller amount...');
-      // Try with smaller amount
-      try {
-        const connection = new Connection(RPC_ENDPOINT, 'confirmed');
-        const signature = await connection.requestAirdrop(
-          publicKey,
-          0.1 * LAMPORTS_PER_SOL
-        );
-        await connection.confirmTransaction(signature, 'confirmed');
-        return signature;
-      } catch {
-        console.warn('Airdrop failed, user may need to fund manually');
-      }
-    }
     console.error('Airdrop error:', err);
     return null;
   }
@@ -118,25 +163,65 @@ export async function requestAirdrop(publicKey: PublicKey, amountSol: number = 1
 
 /**
  * Ensure wallet has sufficient balance for transactions
+ * Tries funder wallet first, falls back to airdrop
  */
 export async function ensureWalletFunded(publicKey: PublicKey): Promise<boolean> {
   try {
     const balance = await getWalletBalance(publicKey);
     
-    if (balance < MIN_BALANCE_SOL) {
-      console.log(`Balance (${balance} SOL) below minimum, requesting airdrop...`);
-      await requestAirdrop(publicKey);
-      
-      // Check balance again
-      const newBalance = await getWalletBalance(publicKey);
-      return newBalance >= MIN_BALANCE_SOL;
+    if (balance >= MIN_BALANCE_SOL) {
+      console.log(`Wallet already has ${balance} SOL`);
+      return true;
     }
     
-    return true;
+    console.log(`Balance (${balance} SOL) below minimum (${MIN_BALANCE_SOL} SOL), funding...`);
+    
+    // Try funder wallet first (more reliable)
+    let funded = await fundFromFunder(publicKey);
+    
+    // If funder failed, try airdrop as fallback
+    if (!funded) {
+      console.log('Funder unavailable, trying airdrop...');
+      funded = await requestAirdrop(publicKey);
+    }
+    
+    if (!funded) {
+      console.error('Failed to fund wallet through any method');
+      return false;
+    }
+    
+    // Verify balance
+    const newBalance = await getWalletBalance(publicKey);
+    console.log(`New balance: ${newBalance} SOL`);
+    return newBalance >= MIN_BALANCE_SOL;
   } catch (err) {
     console.error('Failed to ensure wallet funded:', err);
     return false;
   }
+}
+
+/**
+ * Get funder wallet balance (for debugging/monitoring)
+ */
+export async function getFunderBalance(): Promise<number | null> {
+  const funder = getFunderKeypair();
+  if (!funder) return null;
+  
+  try {
+    const connection = new Connection(RPC_ENDPOINT, 'confirmed');
+    const balance = await connection.getBalance(funder.publicKey);
+    return balance / LAMPORTS_PER_SOL;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Get funder public key (for display/funding)
+ */
+export function getFunderPublicKey(): string | null {
+  const funder = getFunderKeypair();
+  return funder?.publicKey.toBase58() ?? null;
 }
 
 /**

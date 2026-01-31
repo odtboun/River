@@ -24,6 +24,21 @@ The ZK approach was abandoned due to the "Single Prover" constraint where one pa
 | TEE Validator | `FnE6VJT5QNZdedZPnCoLsARgBwoE6DeJNjBs2H1gySXA` |
 | Delegation Program | `DELeGGvXpWV2fqJUhqcF5ZSYMS4JTLjteaAMARRSaeSh` |
 
+## Demo Funder Wallet
+
+For zero-friction demos, new burner wallets are automatically funded from a project funder:
+
+| Item | Value |
+|------|-------|
+| Funder Address | `F2SQVag9X4JK95fec2sJ9jE7cTZMayBxSiDS9PTcLy46` |
+| Funding Amount | 0.02 SOL per new wallet |
+| Explorer | [View on Solscan](https://solscan.io/account/F2SQVag9X4JK95fec2sJ9jE7cTZMayBxSiDS9PTcLy46?cluster=devnet) |
+
+To refill the funder wallet:
+```bash
+solana airdrop 2 F2SQVag9X4JK95fec2sJ9jE7cTZMayBxSiDS9PTcLy46 --url devnet
+```
+
 ## Archived Components
 
 The original Noir/Sunspot implementation is archived in `archive/noir-circuits/`:
