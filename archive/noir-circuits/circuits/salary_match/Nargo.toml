@@ -1,6 +1,0 @@
-[package]
-name = "salary_match"
-type = "bin"
-authors = ["River Team"]
-
-[dependencies]

@@ -1,8 +1,0 @@
-# Default test values for proof generation
-# These are private inputs - they will not be revealed on-chain
-
-# Employer's maximum budget (in dollars)
-employer_max = "100000"
-
-# Candidate's minimum requirement (in dollars)  
-candidate_min = "80000"
