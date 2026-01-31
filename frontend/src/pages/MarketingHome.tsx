@@ -19,11 +19,12 @@ export function MarketingHome() {
                 maxWidth: '1200px',
                 margin: '0 auto',
                 width: '100%',
-                borderBottom: '1px solid #f3f4f6',
-                position: 'relative',
-                zIndex: 20,
-                background: 'rgba(255,255,255,0.8)',
-                backdropFilter: 'blur(8px)'
+                borderBottom: '1px solid rgba(243, 244, 246, 0.6)',
+                position: 'fixed', // Fixed to keep it visible/floating
+                top: 0, left: 0, right: 0,
+                zIndex: 50,
+                background: 'rgba(255,255,255,0.85)',
+                backdropFilter: 'blur(12px)'
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <img src="/river.svg" alt="River" style={{ width: '30px', height: '30px' }} />
@@ -50,9 +51,16 @@ export function MarketingHome() {
             </nav>
 
             {/* Hero Section */}
-            <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <section style={{ position: 'relative', overflow: 'hidden' }}>
-                    {/* Background Image */}
+            <main style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingTop: '80px' }}>
+                <section style={{
+                    position: 'relative',
+                    minHeight: '800px', // Ensure height to show off background
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    overflow: 'hidden'
+                }}>
+                    {/* Background Image - Fully Visible */}
                     <div style={{
                         position: 'absolute',
                         top: 0, left: 0, width: '100%', height: '100%',
@@ -62,35 +70,34 @@ export function MarketingHome() {
                         zIndex: 0
                     }} />
 
-                    {/* Overlay for Readability */}
-                    <div style={{
-                        position: 'absolute',
-                        top: 0, left: 0, width: '100%', height: '100%',
-                        background: 'linear-gradient(to bottom, rgba(255,255,255,0.9), rgba(255,255,255,0.75) 40%, rgba(255,255,255,1))',
-                        zIndex: 1
-                    }} />
-
+                    {/* Centered Content Card */}
                     <div style={{
                         position: 'relative',
                         zIndex: 10,
-                        padding: '6rem 1.5rem',
+                        padding: '4rem 2.5rem',
                         textAlign: 'center',
-                        maxWidth: '900px',
-                        margin: '0 auto'
+                        maxWidth: '800px',
+                        margin: '0 1.5rem',
+
+                        // White Light / Blur Effect
+                        background: 'rgba(255, 255, 255, 0.65)',
+                        backdropFilter: 'blur(20px)',
+                        borderRadius: '32px',
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255,255,255,0.4)',
+                        border: '1px solid rgba(255,255,255,0.6)'
                     }}>
                         <div style={{
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '0.5rem',
                             padding: '0.375rem 1rem',
-                            background: 'rgba(243, 244, 246, 0.8)',
-                            backdropFilter: 'blur(4px)',
+                            background: '#fff',
                             borderRadius: '9999px',
                             fontSize: '0.875rem',
                             color: '#4b5563',
-                            fontWeight: 500,
+                            fontWeight: 600,
                             marginBottom: '2rem',
-                            border: '1px solid rgba(255,255,255,0.5)'
+                            boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
                         }}>
                             <span style={{ width: '6px', height: '6px', backgroundColor: '#10b981', borderRadius: '50%' }}></span>
                             Live on Solana Devnet
@@ -103,18 +110,18 @@ export function MarketingHome() {
                             letterSpacing: '-0.03em',
                             color: '#111827',
                             marginBottom: '1.5rem',
-                            textShadow: '0 2px 10px rgba(255,255,255,0.5)'
                         }}>
                             Salary Negotiation.<br />
-                            <span style={{ color: '#6b7280' }}>Double-Blind. Private.</span>
+                            <span style={{ color: '#4b5563' }}>Double-Blind. Private.</span>
                         </h1>
 
                         <p style={{
                             fontSize: '1.25rem',
-                            color: '#4b5563',
+                            color: '#374151',
                             maxWidth: '580px',
                             margin: '0 auto 3rem',
-                            lineHeight: 1.6
+                            lineHeight: 1.6,
+                            fontWeight: 500
                         }}>
                             Discover if your expectations match without ever revealing your number.
                             Powered by Intel TDX Trusted Execution Environments.
@@ -131,7 +138,7 @@ export function MarketingHome() {
                                     fontSize: '1.0625rem',
                                     fontWeight: 500,
                                     textDecoration: 'none',
-                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
                                 }}
                             >
                                 Start Negotiation
@@ -141,7 +148,7 @@ export function MarketingHome() {
                                 target="_blank"
                                 rel="noreferrer"
                                 style={{
-                                    background: 'rgba(255,255,255,0.8)',
+                                    background: 'rgba(255,255,255,0.9)',
                                     color: '#111827',
                                     padding: '1rem 2rem',
                                     borderRadius: '8px',
@@ -149,8 +156,7 @@ export function MarketingHome() {
                                     fontWeight: 500,
                                     textDecoration: 'none',
                                     border: '1px solid #e5e7eb',
-                                    boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-                                    backdropFilter: 'blur(4px)'
+                                    boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
                                 }}
                             >
                                 View Source
@@ -159,8 +165,8 @@ export function MarketingHome() {
                     </div>
                 </section>
 
-                {/* Problem / Solution Grid */}
-                <section style={{ background: '#f9fafb', padding: '6rem 1.5rem', borderTop: '1px solid #e5e7eb', borderBottom: '1px solid #e5e7eb', position: 'relative', zIndex: 10 }}>
+                {/* Grid Section - Added lighter background to separate from hero */}
+                <section style={{ background: '#fff', padding: '6rem 1.5rem', position: 'relative', zIndex: 10 }}>
                     <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '4rem' }}>
                         <div>
                             <h3 style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#dc2626', marginBottom: '1rem' }}>The Problem</h3>
@@ -196,7 +202,7 @@ export function MarketingHome() {
                         gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
                         gap: '2rem'
                     }}>
-                        <div style={{ padding: '2rem', borderRadius: '12px', border: '1px solid #e5e7eb', background: '#fff' }}>
+                        <div style={{ padding: '2rem', borderRadius: '12px', border: '1px solid #e5e7eb', background: '#f9fafb' }}>
                             <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔐</div>
                             <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>Intel TDX Enclaves</h3>
                             <p style={{ color: '#4b5563', fontSize: '0.9375rem', lineHeight: 1.6 }}>
@@ -205,7 +211,7 @@ export function MarketingHome() {
                             </p>
                         </div>
 
-                        <div style={{ padding: '2rem', borderRadius: '12px', border: '1px solid #e5e7eb', background: '#fff' }}>
+                        <div style={{ padding: '2rem', borderRadius: '12px', border: '1px solid #e5e7eb', background: '#f9fafb' }}>
                             <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🚀</div>
                             <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>MagicBlock PER</h3>
                             <p style={{ color: '#4b5563', fontSize: '0.9375rem', lineHeight: 1.6 }}>
@@ -214,7 +220,7 @@ export function MarketingHome() {
                             </p>
                         </div>
 
-                        <div style={{ padding: '2rem', borderRadius: '12px', border: '1px solid #e5e7eb', background: '#fff' }}>
+                        <div style={{ padding: '2rem', borderRadius: '12px', border: '1px solid #e5e7eb', background: '#f9fafb' }}>
                             <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⚓️</div>
                             <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>Solana Settlement</h3>
                             <p style={{ color: '#4b5563', fontSize: '0.9375rem', lineHeight: 1.6 }}>
