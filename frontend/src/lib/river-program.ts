@@ -2,7 +2,6 @@ import { Program, AnchorProvider, BN, setProvider } from '@coral-xyz/anchor';
 import { PublicKey, SystemProgram, Connection, Keypair, Transaction } from '@solana/web3.js';
 import type { AnchorWallet } from '@solana/wallet-adapter-react';
 import {
-  verifyTeeRpcIntegrity,
   getAuthToken,
   createDelegateInstruction,
   createCommitAndUndelegateInstruction,
@@ -12,8 +11,9 @@ import {
 export const PROGRAM_ID = new PublicKey('HaUJ1uQtgZi8x822pkGFNtVHXaFbGKd2JKGBRS4q5ZvR');
 export const NEGOTIATION_SEED = Buffer.from('negotiation');
 
-// MagicBlock TEE Configuration
+// MagicBlock TEE Configuration (devnet)
 export const TEE_ENDPOINT = 'https://tee.magicblock.app';
+export const TEE_CLUSTER = 'devnet'; // Specify devnet cluster
 export const TEE_VALIDATOR = new PublicKey('FnE6VJT5QNZdedZPnCoLsARgBwoE6DeJNjBs2H1gySXA');
 
 // Standard Solana Devnet RPC
@@ -277,8 +277,8 @@ export class RiverClient {
       console.log('    ✓ Authentication token received');
       console.log('    Creating secure TEE connection...');
 
-      // Create TEE connection with auth token
-      const teeUrl = `${TEE_ENDPOINT}?token=${token}`;
+      // Create TEE connection with auth token and cluster
+      const teeUrl = `${TEE_ENDPOINT}?token=${token}&cluster=${TEE_CLUSTER}`;
       this.teeAuth = {
         token,
         isVerified: true,
