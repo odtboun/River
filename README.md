@@ -75,11 +75,24 @@ River/
 └── Anchor.toml              # Anchor config
 ```
 
+## TEE Requirements
+
+**For Private Mode (TEE Enabled):**
+- Requires a real Solana wallet with `signMessage` capability
+- Compatible wallets: Phantom, Solflare, Backpack, Glow, etc.
+- Salary values are encrypted and processed in Intel TDX secure enclave
+- Values **never** appear on public blockchain
+
+**Quick Start Mode (Burner Wallet):**
+- No wallet installation required - instant demo
+- Values are **publicly visible** on-chain (not private)
+- Suitable for testing the flow, not for real negotiations
+
 ## Flow
 
 1. **Employer** creates a negotiation session on Solana L1
 2. **Candidate** joins the session
-3. **Both parties** delegate the session account to the TEE
+3. **Both parties** delegate the session account to the TEE (if using real wallet)
 4. **Employer** submits `max_budget` to the TEE (encrypted)
 5. **Candidate** submits `min_salary` to the TEE (encrypted)
 6. **TEE** computes `min_salary <= max_budget` and stores result

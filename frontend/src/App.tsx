@@ -11,22 +11,22 @@ import { RiverClient, NegotiationData, getNegotiationPDA, fetchNegotiation, RPC_
 type View = 'landing' | 'employer' | 'candidate';
 
 function App() {
-  const { 
-    connected, 
-    publicKey, 
+  const {
+    connected,
+    publicKey,
     anchorWallet,
     isBurnerWallet,
-    signMessage 
+    signMessage
   } = useRiverWallet();
-  
+
   const [view, setView] = useState<View>('landing');
   const [negotiation, setNegotiation] = useState<NegotiationData | null>(null);
   const [negotiationId, setNegotiationId] = useState<BN | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [txSignature, setTxSignature] = useState<string | null>(null);
-  const [teeStatus, setTeeStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
-  
+  const [teeStatus, setTeeStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'unsupported' | 'error'>('disconnected');
+
   // Keep a persistent RiverClient ref
   const clientRef = useRef<RiverClient | null>(null);
 
@@ -40,7 +40,15 @@ function App() {
       };
       const client = new RiverClient(walletWithSignMessage as any);
       clientRef.current = client;
-      
+
+      // Check if wallet supports TEE (requires signMessage)
+      if (isBurnerWallet || !signMessage) {
+        setTeeStatus('unsupported');
+        console.log('ℹ️  Burner wallet detected - TEE unavailable');
+        console.log('   Connect a real wallet (Phantom, Solflare, etc.) for private mode');
+        return;
+      }
+
       // Try TEE in background (don't block on it)
       const initTee = async () => {
         setTeeStatus('connecting');
@@ -63,13 +71,13 @@ function App() {
       clientRef.current = null;
       setTeeStatus('disconnected');
     }
-  }, [connected, anchorWallet, signMessage]);
+  }, [connected, anchorWallet, signMessage, isBurnerWallet]);
 
   // Check URL for negotiation ID on load
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const idParam = params.get('n');
-    
+
     if (idParam) {
       try {
         const id = new BN(idParam);
@@ -150,15 +158,15 @@ function App() {
     try {
       const client = getClient();
       if (!client) throw new Error('Client not initialized');
-      
+
       const { negotiationId: newId, tx } = await client.createNegotiation();
-      
+
       setNegotiationId(newId);
       setTxSignature(tx);
-      
+
       // Update URL
       window.history.replaceState({}, '', `?n=${newId.toString()}`);
-      
+
       // Load the negotiation data
       await loadNegotiation(newId);
     } catch (err: any) {
@@ -182,10 +190,10 @@ function App() {
     try {
       const client = getClient();
       if (!client) throw new Error('Client not initialized');
-      
+
       const tx = await client.submitEmployerBudget(negotiationId, maxBudget);
       setTxSignature(tx);
-      
+
       // Reload negotiation data
       await loadNegotiation(negotiationId);
     } catch (err: any) {
@@ -209,10 +217,10 @@ function App() {
     try {
       const client = getClient();
       if (!client) throw new Error('Client not initialized');
-      
+
       const tx = await client.joinNegotiation(negotiationId);
       setTxSignature(tx);
-      
+
       // Reload negotiation data
       await loadNegotiation(negotiationId);
     } catch (err: any) {
@@ -236,10 +244,10 @@ function App() {
     try {
       const client = getClient();
       if (!client) throw new Error('Client not initialized');
-      
+
       const tx = await client.submitCandidateRequirement(negotiationId, minSalary);
       setTxSignature(tx);
-      
+
       // Reload negotiation data
       await loadNegotiation(negotiationId);
     } catch (err: any) {
@@ -269,6 +277,8 @@ function App() {
         return { text: 'TEE Active', className: 'tee-connected' };
       case 'connecting':
         return { text: 'Connecting TEE...', className: 'tee-connecting' };
+      case 'unsupported':
+        return { text: 'TEE Unavailable (Burner Wallet)', className: 'tee-unsupported' };
       case 'error':
         return { text: 'TEE Error', className: 'tee-error' };
       default:
@@ -311,12 +321,12 @@ function App() {
         )}
 
         {view === 'landing' && (
-          <LandingPage 
+          <LandingPage
             onStartEmployer={handleStartEmployer}
             onStartCandidate={() => setView('candidate')}
           />
         )}
-        
+
         {view === 'employer' && (
           <EmployerFlow
             connected={connected}
@@ -332,7 +342,7 @@ function App() {
             onReset={handleReset}
           />
         )}
-        
+
         {view === 'candidate' && (
           <CandidateFlow
             connected={connected}

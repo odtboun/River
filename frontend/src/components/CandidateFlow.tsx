@@ -16,20 +16,19 @@ interface CandidateFlowProps {
   onReset: () => void;
 }
 
-export function CandidateFlow({ 
-  connected, 
-  negotiation, 
+export function CandidateFlow({
+  connected,
+  negotiation,
   negotiationId,
   loading,
   txSignature,
   teeActive = false,
-  isBurnerWallet: _isBurnerWallet = false,
+  isBurnerWallet = false,
   walletAddress,
   onJoin,
-  onSubmit, 
-  onReset 
+  onSubmit,
+  onReset
 }: CandidateFlowProps) {
-  void _isBurnerWallet; // Reserved for future use
   const [inputValue, setInputValue] = useState('');
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -171,7 +170,7 @@ export function CandidateFlow({
             By joining, you'll be able to submit your minimum salary requirement.
             The comparison will happen securely without revealing either party's number.
           </p>
-          <button 
+          <button
             className="btn btn-primary btn-full btn-large"
             onClick={onJoin}
             disabled={loading}
@@ -221,7 +220,7 @@ export function CandidateFlow({
           </div>
         </div>
 
-        <button 
+        <button
           className="btn btn-primary btn-full btn-large"
           onClick={handleSubmit}
           disabled={!inputValue || parseInt(inputValue) <= 0 || loading}
@@ -231,13 +230,27 @@ export function CandidateFlow({
 
         {txSignature && (
           <div className="tx-link" style={{ marginTop: '1rem' }}>
-            <a 
+            <a
               href={`https://solscan.io/tx/${txSignature}?cluster=devnet`}
               target="_blank"
               rel="noopener noreferrer"
             >
               View transaction
             </a>
+          </div>
+        )}
+
+        {isBurnerWallet && !teeActive && (
+          <div className="warning-banner" style={{ marginTop: '1.5rem' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <div>
+              <strong>Privacy Notice:</strong> Using burner wallet - values will be public on-chain.
+              Connect a real wallet (Phantom, Solflare, etc.) for private mode.
+            </div>
           </div>
         )}
 
@@ -271,7 +284,7 @@ export function CandidateFlow({
             {isMatch ? 'Match Found' : 'No Match'}
           </h2>
           <p className="result-description">
-            {isMatch 
+            {isMatch
               ? 'Great news! Your minimum is within the employer\'s budget. Time to talk!'
               : 'Unfortunately, the employer\'s budget doesn\'t meet your minimum requirement.'}
           </p>
@@ -279,7 +292,7 @@ export function CandidateFlow({
 
         {txSignature && (
           <div className="tx-link" style={{ marginTop: '1rem' }}>
-            <a 
+            <a
               href={`https://solscan.io/tx/${txSignature}?cluster=devnet`}
               target="_blank"
               rel="noopener noreferrer"

@@ -12,6 +12,7 @@
   "dependencies": {
     "@coral-xyz/anchor": "^0.29.0",
     "@magicblock-labs/ephemeral-rollups-sdk": "^0.8.5",
+    "@phala/dcap-qvl-web": "^0.3.3",
     "@solana/wallet-adapter-base": "^0.9.27",
     "@solana/wallet-adapter-react": "^0.15.39",
     "@solana/wallet-adapter-react-ui": "^0.9.39",
@@ -28,6 +29,8 @@
     "@vitejs/plugin-react": "^4.3.3",
     "typescript": "^5.6.3",
     "vite": "^5.4.11",
-    "vite-plugin-node-polyfills": "^0.22.0"
+    "vite-plugin-node-polyfills": "^0.22.0",
+    "vite-plugin-top-level-await": "^1.6.0",
+    "vite-plugin-wasm": "^3.5.0"
   }
 }

@@ -16,20 +16,19 @@ interface EmployerFlowProps {
   onReset: () => void;
 }
 
-export function EmployerFlow({ 
-  connected, 
-  negotiation, 
+export function EmployerFlow({
+  connected,
+  negotiation,
   negotiationId,
-  shareUrl, 
+  shareUrl,
   loading,
   txSignature,
   teeActive = false,
-  isBurnerWallet: _isBurnerWallet = false,
-  onCreateNegotiation, 
-  onSubmit, 
-  onReset 
+  isBurnerWallet = false,
+  onCreateNegotiation,
+  onSubmit,
+  onReset
 }: EmployerFlowProps) {
-  void _isBurnerWallet; // Reserved for future use
   const [inputValue, setInputValue] = useState('');
   const [copied, setCopied] = useState(false);
 
@@ -84,13 +83,27 @@ export function EmployerFlow({
             <p className="card-text">
               You'll create a negotiation session on Solana. This requires a small transaction fee.
             </p>
-            <button 
+            <button
               className="btn btn-primary btn-full btn-large"
               onClick={onCreateNegotiation}
               disabled={loading}
             >
               {loading ? 'Creating...' : 'Create Negotiation'}
             </button>
+          </div>
+        )}
+
+        {isBurnerWallet && !teeActive && (
+          <div className="warning-banner" style={{ marginTop: '1.5rem' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <div>
+              <strong>Privacy Notice:</strong> Using burner wallet - values will be public on-chain.
+              Connect a real wallet (Phantom, Solflare, etc.) for private mode.
+            </div>
           </div>
         )}
 
@@ -108,7 +121,7 @@ export function EmployerFlow({
   // Step 1: Enter budget (negotiation created but budget not submitted)
   // Use hasEmployerSubmitted flag since status doesn't change on submission
   const needsBudgetInput = negotiation && !negotiation.hasEmployerSubmitted;
-  
+
   if (needsBudgetInput) {
     return (
       <>
@@ -138,7 +151,7 @@ export function EmployerFlow({
           </div>
         </div>
 
-        <button 
+        <button
           className="btn btn-primary btn-full btn-large"
           onClick={handleSubmit}
           disabled={!inputValue || parseInt(inputValue) <= 0 || loading}
@@ -148,7 +161,7 @@ export function EmployerFlow({
 
         {txSignature && (
           <div className="tx-link" style={{ marginTop: '1rem' }}>
-            <a 
+            <a
               href={`https://solscan.io/tx/${txSignature}?cluster=devnet`}
               target="_blank"
               rel="noopener noreferrer"
@@ -163,19 +176,19 @@ export function EmployerFlow({
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
           </svg>
-          <span>This amount will never be revealed</span>
+          <span>{teeActive ? 'This amount will be encrypted in TEE - never revealed' : 'This amount will never be revealed to the candidate'}</span>
         </div>
       </>
     );
   }
 
   // Step 2: Share link & wait for candidate (employer has submitted, waiting for candidate)
-  const waitingForCandidate = negotiation && 
-    negotiation.hasEmployerSubmitted && 
+  const waitingForCandidate = negotiation &&
+    negotiation.hasEmployerSubmitted &&
     !negotiation.hasCandidateSubmitted &&
-    negotiation.status !== 'complete' && 
+    negotiation.status !== 'complete' &&
     negotiation.status !== 'finalized';
-  
+
   if (waitingForCandidate) {
     return (
       <>
@@ -215,7 +228,7 @@ export function EmployerFlow({
 
         {txSignature && (
           <div className="tx-link" style={{ marginTop: '1rem' }}>
-            <a 
+            <a
               href={`https://solscan.io/tx/${txSignature}?cluster=devnet`}
               target="_blank"
               rel="noopener noreferrer"
@@ -253,7 +266,7 @@ export function EmployerFlow({
             {isMatch ? 'Match Found' : 'No Match'}
           </h2>
           <p className="result-description">
-            {isMatch 
+            {isMatch
               ? 'Great news! The candidate\'s minimum is within your budget.'
               : 'The candidate\'s minimum requirement exceeds your budget.'}
           </p>
@@ -261,7 +274,7 @@ export function EmployerFlow({
 
         {txSignature && (
           <div className="tx-link" style={{ marginTop: '1rem' }}>
-            <a 
+            <a
               href={`https://solscan.io/tx/${txSignature}?cluster=devnet`}
               target="_blank"
               rel="noopener noreferrer"
