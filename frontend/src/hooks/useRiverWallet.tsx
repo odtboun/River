@@ -2,9 +2,8 @@ import { createContext, useContext, useState, useEffect, useCallback, ReactNode 
 import { Keypair, PublicKey, Transaction, VersionedTransaction } from '@solana/web3.js';
 import { useWallet } from '@solana/wallet-adapter-react';
 import type { AnchorWallet } from '@solana/wallet-adapter-react';
-import { 
-  getOrCreateBurnerWallet, 
-  hasBurnerWallet,
+import {
+  getOrCreateBurnerWallet,
   ensureWalletFunded,
   getWalletBalance,
   exportBurnerWallet
@@ -17,27 +16,27 @@ interface RiverWalletContextType {
   connected: boolean;
   connecting: boolean;
   walletMode: WalletMode;
-  
+
   // Public key
   publicKey: PublicKey | null;
-  
+
   // Balance
   balance: number | null;
-  
+
   // Actions
   connectBurner: () => Promise<void>;
   connectExternal: () => void;
   disconnect: () => void;
   refreshBalance: () => Promise<void>;
-  
+
   // Signing
   signTransaction: <T extends Transaction | VersionedTransaction>(tx: T) => Promise<T>;
   signAllTransactions: <T extends Transaction | VersionedTransaction>(txs: T[]) => Promise<T[]>;
   signMessage: (message: Uint8Array) => Promise<Uint8Array>;
-  
+
   // For Anchor compatibility
   anchorWallet: AnchorWallet | null;
-  
+
   // Utils
   exportWallet: () => string | null;
   isBurnerWallet: boolean;
@@ -51,18 +50,15 @@ interface RiverWalletProviderProps {
 
 export function RiverWalletProvider({ children }: RiverWalletProviderProps) {
   const externalWallet = useWallet();
-  
+
   const [walletMode, setWalletMode] = useState<WalletMode>('none');
   const [burnerKeypair, setBurnerKeypair] = useState<Keypair | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [balance, setBalance] = useState<number | null>(null);
 
-  // Auto-connect burner wallet on mount if one exists
-  useEffect(() => {
-    if (hasBurnerWallet() && !externalWallet.connected) {
-      connectBurner();
-    }
-  }, []);
+  // Note: We intentionally don't auto-connect burner wallet on mount.
+  // This allows users to choose between Quick Start (burner) or their real wallet.
+  // If we auto-connected burner, users couldn't easily use real wallets.
 
   // Sync with external wallet
   useEffect(() => {
@@ -73,9 +69,9 @@ export function RiverWalletProvider({ children }: RiverWalletProviderProps) {
   }, [externalWallet.connected, externalWallet.publicKey]);
 
   // Get the active public key
-  const publicKey = walletMode === 'external' 
-    ? externalWallet.publicKey 
-    : walletMode === 'burner' 
+  const publicKey = walletMode === 'external'
+    ? externalWallet.publicKey
+    : walletMode === 'burner'
       ? burnerKeypair?.publicKey ?? null
       : null;
 
@@ -112,15 +108,15 @@ export function RiverWalletProvider({ children }: RiverWalletProviderProps) {
       if (externalWallet.connected) {
         await externalWallet.disconnect();
       }
-      
+
       // Get or create burner
       const keypair = getOrCreateBurnerWallet();
       setBurnerKeypair(keypair);
       setWalletMode('burner');
-      
+
       // Ensure funded (airdrop if needed)
       await ensureWalletFunded(keypair.publicKey);
-      
+
       // Refresh balance
       const bal = await getWalletBalance(keypair.publicKey);
       setBalance(bal);
