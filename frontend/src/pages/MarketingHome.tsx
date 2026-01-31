@@ -2,7 +2,14 @@ import { Link } from 'react-router-dom';
 
 export function MarketingHome() {
     return (
-        <div className="marketing-home" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#0a0a0a', color: '#fff' }}>
+        <div className="marketing-home" style={{
+            minHeight: '100vh',
+            display: 'flex',
+            flexDirection: 'column',
+            background: '#ffffff',
+            color: '#111827',
+            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+        }}>
             {/* Navigation */}
             <nav className="nav" style={{
                 display: 'flex',
@@ -11,26 +18,27 @@ export function MarketingHome() {
                 padding: '1.5rem 2rem',
                 maxWidth: '1200px',
                 margin: '0 auto',
-                width: '100%'
+                width: '100%',
+                borderBottom: '1px solid #f3f4f6'
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <img src="/river.svg" alt="River" style={{ width: '32px', height: '32px' }} />
-                    <span style={{ fontSize: '1.25rem', fontWeight: 600, letterSpacing: '-0.025em' }}>River</span>
+                    <img src="/river.svg" alt="River" style={{ width: '30px', height: '30px' }} />
+                    <span style={{ fontSize: '1.25rem', fontWeight: 600, letterSpacing: '-0.025em', color: '#111827' }}>River</span>
                 </div>
 
                 <Link
                     to="/app"
                     className="btn"
                     style={{
-                        background: '#fff',
-                        color: '#0a0a0a',
+                        background: '#18181b', // Zinc-900
+                        color: '#fff',
                         fontWeight: 500,
                         padding: '0.625rem 1.25rem',
-                        borderRadius: '6px',
+                        borderRadius: '8px',
                         fontSize: '0.9375rem',
                         textDecoration: 'none',
-                        border: '1px solid #fff',
-                        transition: 'opacity 0.2s'
+                        transition: 'background 0.2s',
+                        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
                     }}
                 >
                     Launch App
@@ -38,54 +46,64 @@ export function MarketingHome() {
             </nav>
 
             {/* Hero Section */}
-            <main style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 1.5rem' }}>
-                <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center', padding: '4rem 0' }}>
+            <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <section style={{
+                    padding: '6rem 1.5rem',
+                    textAlign: 'center',
+                    maxWidth: '900px',
+                    margin: '0 auto'
+                }}>
                     <div style={{
-                        display: 'inline-block',
-                        padding: '0.5rem 1rem',
-                        background: 'rgba(255,255,255,0.08)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.375rem 1rem',
+                        background: '#f3f4f6',
                         borderRadius: '9999px',
                         fontSize: '0.875rem',
-                        marginBottom: '1.5rem',
-                        border: '1px solid rgba(255,255,255,0.1)'
+                        color: '#4b5563',
+                        fontWeight: 500,
+                        marginBottom: '2rem'
                     }}>
-                        Now live on Solana Devnet
+                        <span style={{ width: '6px', height: '6px', backgroundColor: '#10b981', borderRadius: '50%' }}></span>
+                        Live on Solana Devnet
                     </div>
 
                     <h1 style={{
-                        fontSize: 'clamp(2.5rem, 8vw, 4.5rem)',
-                        fontWeight: 700,
+                        fontSize: 'clamp(3rem, 6vw, 4.5rem)',
+                        fontWeight: 800,
                         lineHeight: 1.1,
-                        letterSpacing: '-0.04em', // Tighter tracking for "classy" look
+                        letterSpacing: '-0.03em',
+                        color: '#111827',
                         marginBottom: '1.5rem'
                     }}>
                         Salary Negotiation.<br />
-                        <span style={{ color: '#888' }}>Double-Blind. Private.</span>
+                        <span style={{ color: '#9ca3af' }}>Double-Blind. Private.</span>
                     </h1>
 
                     <p style={{
                         fontSize: '1.25rem',
-                        color: '#a1a1aa',
-                        maxWidth: '540px',
+                        color: '#4b5563',
+                        maxWidth: '580px',
                         margin: '0 auto 3rem',
                         lineHeight: 1.6
                     }}>
-                        Reach an agreement without ever compromising your position.
-                        Powered by high-performance Trusted Execution Environments (TEE).
+                        Discover if your expectations match without ever revealing your number.
+                        Powered by Intel TDX Trusted Execution Environments.
                     </p>
 
-                    <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
                         <Link
                             to="/app"
                             style={{
-                                background: '#fff',
-                                color: '#0a0a0a',
+                                background: '#18181b',
+                                color: '#fff',
                                 padding: '1rem 2rem',
                                 borderRadius: '8px',
-                                fontSize: '1.125rem',
-                                fontWeight: 600,
+                                fontSize: '1.0625rem',
+                                fontWeight: 500,
                                 textDecoration: 'none',
-                                border: '1px solid #fff'
+                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
                             }}
                         >
                             Start Negotiation
@@ -95,66 +113,104 @@ export function MarketingHome() {
                             target="_blank"
                             rel="noreferrer"
                             style={{
-                                background: 'transparent',
-                                color: '#fff',
+                                background: '#fff',
+                                color: '#111827',
                                 padding: '1rem 2rem',
                                 borderRadius: '8px',
-                                fontSize: '1.125rem',
+                                fontSize: '1.0625rem',
                                 fontWeight: 500,
                                 textDecoration: 'none',
-                                border: '1px solid rgba(255,255,255,0.2)'
+                                border: '1px solid #e5e7eb',
+                                boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
                             }}
                         >
                             View Source
                         </a>
                     </div>
-                </div>
+                </section>
 
-                {/* Feature Grid */}
-                <div style={{
-                    maxWidth: '1200px',
-                    margin: '4rem auto 0',
-                    width: '100%',
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                    gap: '2rem',
-                    borderTop: '1px solid rgba(255,255,255,0.1)',
-                    paddingTop: '4rem'
-                }}>
-                    <div>
-                        <div style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>🔒</div>
-                        <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>Confidential Computing</h3>
-                        <p style={{ color: '#a1a1aa', lineHeight: 1.6 }}>
-                            Your data is processed inside Intel TDX enclaves. Not even the node operators can see your numbers.
+                {/* Problem / Solution Grid */}
+                <section style={{ background: '#f9fafb', padding: '6rem 1.5rem', borderTop: '1px solid #e5e7eb', borderBottom: '1px solid #e5e7eb' }}>
+                    <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '4rem' }}>
+                        <div>
+                            <h3 style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#dc2626', marginBottom: '1rem' }}>The Problem</h3>
+                            <h2 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '1rem', letterSpacing: '-0.025em' }}>Information Asymmetry</h2>
+                            <p style={{ color: '#4b5563', lineHeight: 1.6 }}>
+                                In traditional negotiation, the first person to say a number often loses leverage.
+                                Employers know their budget limits, while candidates know their minimums—but neither side wants to reveal their hand, leading to inefficiency and mistrust.
+                            </p>
+                        </div>
+                        <div>
+                            <h3 style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#10b981', marginBottom: '1rem' }}>The Solution</h3>
+                            <h2 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '1rem', letterSpacing: '-0.025em' }}>Double-Blind Matching</h2>
+                            <p style={{ color: '#4b5563', lineHeight: 1.6 }}>
+                                River acts as a neutral, cryptographic third party. Both sides submit their numbers privately.
+                                Our secure enclave compares them and only reveals a "Match" or "No Match" result.
+                                If there's no match, neither side learns the other's number.
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                {/* Architecture & Tech */}
+                <section style={{ padding: '6rem 1.5rem', maxWidth: '1000px', margin: '0 auto', width: '100%' }}>
+                    <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
+                        <h2 style={{ fontSize: '2.5rem', fontWeight: 700, marginBottom: '1rem', letterSpacing: '-0.025em' }}>How It Works</h2>
+                        <p style={{ color: '#6b7280', fontSize: '1.125rem', maxWidth: '600px', margin: '0 auto' }}>
+                            Hardware-grade privacy on the Solana blockchain.
                         </p>
                     </div>
-                    <div>
-                        <div style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>⚖️</div>
-                        <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>Double-Blind</h3>
-                        <p style={{ color: '#a1a1aa', lineHeight: 1.6 }}>
-                            Employers set a max budget. Candidates set a minimum. We only reveal if you match.
-                        </p>
+
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                        gap: '2rem'
+                    }}>
+                        <div style={{ padding: '2rem', borderRadius: '12px', border: '1px solid #e5e7eb', background: '#fff' }}>
+                            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔐</div>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>Intel TDX Enclaves</h3>
+                            <p style={{ color: '#4b5563', fontSize: '0.9375rem', lineHeight: 1.6 }}>
+                                Computation happens inside a hardware-isolated Trusted Execution Environment (TEE).
+                                The memory is encrypted at the CPU level, ensuring raw data is invisible even to the server operator.
+                            </p>
+                        </div>
+
+                        <div style={{ padding: '2rem', borderRadius: '12px', border: '1px solid #e5e7eb', background: '#fff' }}>
+                            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🚀</div>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>MagicBlock PER</h3>
+                            <p style={{ color: '#4b5563', fontSize: '0.9375rem', lineHeight: 1.6 }}>
+                                Utilizing Private Ephemeral Rollups allows us to perform high-speed,
+                                gas-free negotiation steps off-chain while maintaining cryptographic integrity.
+                            </p>
+                        </div>
+
+                        <div style={{ padding: '2rem', borderRadius: '12px', border: '1px solid #e5e7eb', background: '#fff' }}>
+                            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⚓️</div>
+                            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>Solana Settlement</h3>
+                            <p style={{ color: '#4b5563', fontSize: '0.9375rem', lineHeight: 1.6 }}>
+                                Once the negotiation concludes, only the final boolean result (Match/No Match)
+                                is committed back to the Solana mainnet for permanent, verifiable record-keeping.
+                            </p>
+                        </div>
                     </div>
-                    <div>
-                        <div style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>⚡️</div>
-                        <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>MagicBlock PER</h3>
-                        <p style={{ color: '#a1a1aa', lineHeight: 1.6 }}>
-                            Built on Private Ephemeral Rollups for instant settlement and zero gas fees for negotiation steps.
-                        </p>
-                    </div>
-                </div>
+                </section>
             </main>
 
             {/* Footer */}
             <footer style={{
                 textAlign: 'center',
                 padding: '3rem 1.5rem',
-                color: '#52525b',
+                color: '#9ca3af',
                 fontSize: '0.875rem',
-                borderTop: '1px solid rgba(255,255,255,0.05)',
+                borderTop: '1px solid #f3f4f6',
                 marginTop: 'auto'
             }}>
-                <p>&copy; 2026 River Protocol. Built on Solana.</p>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', marginBottom: '1.5rem' }}>
+                    <a href="https://magicblock.gg" target="_blank" rel="noreferrer" style={{ color: '#4b5563', textDecoration: 'none' }}>MagicBlock</a>
+                    <a href="https://solana.com" target="_blank" rel="noreferrer" style={{ color: '#4b5563', textDecoration: 'none' }}>Solana</a>
+                    <a href="https://github.com/odtboun/River" target="_blank" rel="noreferrer" style={{ color: '#4b5563', textDecoration: 'none' }}>GitHub</a>
+                </div>
+                <p>&copy; 2026 River Protocol. All rights reserved.</p>
             </footer>
         </div>
     );
