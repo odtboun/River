@@ -29,19 +29,27 @@ export function CandidateFlow({
   onSubmit,
   onReset
 }: CandidateFlowProps) {
-  const [inputValue, setInputValue] = useState('');
+  const [baseSalary, setBaseSalary] = useState('');
+  const [bonus, setBonus] = useState('');
+  const [equity, setEquity] = useState('');
 
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>, setter: (val: string) => void) => {
     const raw = e.target.value.replace(/[^0-9]/g, '');
-    setInputValue(raw);
+    setter(raw);
   }, []);
 
+  const total = (
+    (parseInt(baseSalary) || 0) +
+    (parseInt(bonus) || 0) +
+    (parseInt(equity) || 0)
+  ).toString();
+
   const handleSubmit = useCallback(async () => {
-    const value = parseInt(inputValue);
+    const value = parseInt(total);
     if (value > 0) {
       await onSubmit(value);
     }
-  }, [inputValue, onSubmit]);
+  }, [total, onSubmit]);
 
   const formatNumber = (val: string) => {
     if (!val) return '';
@@ -202,8 +210,8 @@ export function CandidateFlow({
         </div>
 
         <div className="card">
-          <div className="form-group">
-            <label className="form-label">Minimum Salary</label>
+          <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+            <label className="form-label">Base Salary</label>
             <div className="input-wrapper">
               <span className="input-prefix">$</span>
               <input
@@ -211,19 +219,65 @@ export function CandidateFlow({
                 inputMode="numeric"
                 className="form-input"
                 placeholder="100,000"
-                value={formatNumber(inputValue)}
-                onChange={handleInputChange}
+                value={formatNumber(baseSalary)}
+                onChange={(e) => handleInputChange(e, setBaseSalary)}
                 autoFocus
               />
             </div>
-            <p className="form-hint">The minimum annual salary you'll accept</p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+            <div className="form-group">
+              <label className="form-label">Signing Bonus</label>
+              <div className="input-wrapper">
+                <span className="input-prefix">$</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  className="form-input"
+                  placeholder="20,000"
+                  value={formatNumber(bonus)}
+                  onChange={(e) => handleInputChange(e, setBonus)}
+                />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Equity Value</label>
+              <div className="input-wrapper">
+                <span className="input-prefix">$</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  className="form-input"
+                  placeholder="50,000"
+                  value={formatNumber(equity)}
+                  onChange={(e) => handleInputChange(e, setEquity)}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div style={{
+            background: '#f3f4f6',
+            padding: '1rem',
+            borderRadius: '8px',
+            marginBottom: '0.5rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <span style={{ color: '#4b5563', fontWeight: 500 }}>Total Package</span>
+            <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#059669' }}>
+              ${parseInt(total) > 0 ? parseInt(total).toLocaleString() : '0'}
+            </span>
           </div>
         </div>
 
         <button
           className="btn btn-primary btn-full btn-large"
           onClick={handleSubmit}
-          disabled={!inputValue || parseInt(inputValue) <= 0 || loading}
+          disabled={!total || parseInt(total) <= 0 || loading}
         >
           {loading ? 'Submitting...' : 'Check for Match'}
         </button>
