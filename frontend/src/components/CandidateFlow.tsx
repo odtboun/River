@@ -12,8 +12,14 @@ interface CandidateFlowProps {
   isBurnerWallet?: boolean;
   walletAddress: string | null;
   activeFields?: string[];
+  matchDetails?: {
+    baseMatch: boolean;
+    bonusMatch: boolean;
+    equityMatch: boolean;
+    totalMatch: boolean;
+  } | null;
   onJoin: () => Promise<void>;
-  onSubmit: (minSalary: number) => Promise<void>;
+  onSubmit: (base: number, bonus: number, equity: number) => Promise<void>;
   onReset: () => void;
 }
 
@@ -27,6 +33,7 @@ export function CandidateFlow({
   isBurnerWallet = false,
   walletAddress,
   activeFields = ['base'],
+  matchDetails,
   onJoin,
   onSubmit,
   onReset
@@ -38,6 +45,9 @@ export function CandidateFlow({
   // Total Logic
   const [total, setTotal] = useState('');
   const [isTotalManual, setIsTotalManual] = useState(false);
+
+  // Determine mode
+  const isBasicMode = activeFields.length === 1 && activeFields[0] === 'base';
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>, setter: (val: string) => void) => {
     const raw = e.target.value.replace(/[^0-9]/g, '');
@@ -63,11 +73,24 @@ export function CandidateFlow({
   };
 
   const handleSubmit = useCallback(async () => {
-    const value = parseInt(total);
-    if (value > 0) {
-      await onSubmit(value);
+    if (isBasicMode) {
+      // In basic mode, the single input represents the base/total
+      const value = parseInt(baseSalary);
+      if (value > 0) {
+        // For basic mode, bonus and equity are 0
+        await onSubmit(value, 0, 0);
+      }
+    } else {
+      // Complex mode
+      const baseVal = parseInt(baseSalary) || 0;
+      const bonusVal = parseInt(bonus) || 0;
+      const equityVal = parseInt(equity) || 0;
+
+      if (baseVal > 0 || bonusVal > 0 || equityVal > 0) {
+        await onSubmit(baseVal, bonusVal, equityVal);
+      }
     }
-  }, [total, onSubmit]);
+  }, [baseSalary, bonus, equity, isBasicMode, onSubmit]);
 
   const formatNumber = (val: string) => {
     if (!val) return '';
@@ -228,97 +251,120 @@ export function CandidateFlow({
         </div>
 
         <div className="card">
-          <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-            <label className="form-label">Base Salary</label>
-            <div className="input-wrapper">
-              <span className="input-prefix">$</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                className="form-input"
-                placeholder="100,000"
-                value={formatNumber(baseSalary)}
-                onChange={(e) => handleInputChange(e, setBaseSalary)}
-                autoFocus
-              />
+          {isBasicMode ? (
+            // Basic Mode: Single Input
+            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+              <label className="form-label">Min Salary Requirement</label>
+              <div className="input-wrapper">
+                <span className="input-prefix">$</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  className="form-input"
+                  style={{ fontSize: '1.25rem', fontWeight: 700 }}
+                  placeholder="100,000"
+                  value={formatNumber(baseSalary)}
+                  onChange={(e) => handleInputChange(e, setBaseSalary)}
+                  autoFocus
+                />
+              </div>
             </div>
-          </div>
+          ) : (
+            // Complex Mode: Multiple Inputs
+            <>
+              <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                <label className="form-label">Base Salary</label>
+                <div className="input-wrapper">
+                  <span className="input-prefix">$</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    className="form-input"
+                    placeholder="100,000"
+                    value={formatNumber(baseSalary)}
+                    onChange={(e) => handleInputChange(e, setBaseSalary)}
+                    autoFocus
+                  />
+                </div>
+              </div>
 
-          {(activeFields.includes('bonus') || activeFields.includes('equity')) && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-              {activeFields.includes('bonus') && (
-                <div className="form-group">
-                  <label className="form-label">Min Performance Bonus</label>
-                  <div className="input-wrapper">
-                    <span className="input-prefix">$</span>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      className="form-input"
-                      placeholder="20,000"
-                      value={formatNumber(bonus)}
-                      onChange={(e) => handleInputChange(e, setBonus)}
-                    />
-                  </div>
+              {(activeFields.includes('bonus') || activeFields.includes('equity')) && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                  {activeFields.includes('bonus') && (
+                    <div className="form-group">
+                      <label className="form-label">Min Performance Bonus</label>
+                      <div className="input-wrapper">
+                        <span className="input-prefix">$</span>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          className="form-input"
+                          placeholder="20,000"
+                          value={formatNumber(bonus)}
+                          onChange={(e) => handleInputChange(e, setBonus)}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {activeFields.includes('equity') && (
+                    <div className="form-group">
+                      <label className="form-label">Min Equity Value</label>
+                      <div className="input-wrapper">
+                        <span className="input-prefix">$</span>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          className="form-input"
+                          placeholder="50,000"
+                          value={formatNumber(equity)}
+                          onChange={(e) => handleInputChange(e, setEquity)}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {activeFields.includes('equity') && (
-                <div className="form-group">
-                  <label className="form-label">Min Equity Value</label>
-                  <div className="input-wrapper">
-                    <span className="input-prefix">$</span>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      className="form-input"
-                      placeholder="50,000"
-                      value={formatNumber(equity)}
-                      onChange={(e) => handleInputChange(e, setEquity)}
-                    />
-                  </div>
+              <div style={{
+                background: '#f3f4f6',
+                padding: '1rem',
+                borderRadius: '8px',
+                marginBottom: '0.5rem',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <label className="form-label" style={{ marginBottom: 0 }}>Min Total Package</label>
+                  {isTotalManual && (
+                    <button
+                      onClick={() => setIsTotalManual(false)}
+                      style={{ fontSize: '0.75rem', color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                    >
+                      Reset to Auto-Sum
+                    </button>
+                  )}
                 </div>
-              )}
-            </div>
+
+                <div className="input-wrapper">
+                  <span className="input-prefix">$</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    className="form-input"
+                    style={{ fontSize: '1.25rem', fontWeight: 700, color: '#059669' }}
+                    placeholder="0"
+                    value={formatNumber(total)}
+                    onChange={handleTotalChange}
+                  />
+                </div>
+              </div>
+            </>
           )}
-
-          <div style={{
-            background: '#f3f4f6',
-            padding: '1rem',
-            borderRadius: '8px',
-            marginBottom: '0.5rem',
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <label className="form-label" style={{ marginBottom: 0 }}>Min Total Package</label>
-              {isTotalManual && (
-                <button
-                  onClick={() => setIsTotalManual(false)}
-                  style={{ fontSize: '0.75rem', color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
-                >
-                  Reset to Auto-Sum
-                </button>
-              )}
-            </div>
-
-            <div className="input-wrapper">
-              <span className="input-prefix">$</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                className="form-input"
-                style={{ fontSize: '1.25rem', fontWeight: 700, color: '#059669' }}
-                placeholder="0"
-                value={formatNumber(total)}
-                onChange={handleTotalChange}
-              />
-            </div>
-          </div>
         </div>
 
         <button
           className="btn btn-primary btn-full btn-large"
           onClick={handleSubmit}
-          disabled={!total || parseInt(total) <= 0 || loading}
+          disabled={!baseSalary || (isBasicMode ? parseInt(baseSalary) <= 0 : false) || loading}
         >
           {loading ? 'Submitting...' : 'Check for Match'}
         </button>
@@ -383,6 +429,41 @@ export function CandidateFlow({
               ? 'Great news! Your minimum is within the employer\'s budget. Time to talk!'
               : 'Unfortunately, the employer\'s budget doesn\'t meet your minimum requirement.'}
           </p>
+
+          {matchDetails && !isBasicMode && (
+            <div style={{ marginTop: '1.5rem', textAlign: 'left', borderTop: '1px solid #e5e7eb', paddingTop: '1rem' }}>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: 600, color: '#4b5563', marginBottom: '0.75rem' }}>Match Breakdown</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.5rem', fontSize: '0.9rem' }}>
+                <div style={{ color: '#6b7280' }}>Base Salary</div>
+                <div style={{ fontWeight: 600, color: matchDetails.baseMatch ? '#059669' : '#dc2626' }}>
+                  {matchDetails.baseMatch ? '✓ Matched' : '✗ No Match'}
+                </div>
+
+                {activeFields.includes('bonus') && (
+                  <>
+                    <div style={{ color: '#6b7280' }}>Bonus</div>
+                    <div style={{ fontWeight: 600, color: matchDetails.bonusMatch ? '#059669' : '#dc2626' }}>
+                      {matchDetails.bonusMatch ? '✓ Matched' : '✗ No Match'}
+                    </div>
+                  </>
+                )}
+
+                {activeFields.includes('equity') && (
+                  <>
+                    <div style={{ color: '#6b7280' }}>Equity</div>
+                    <div style={{ fontWeight: 600, color: matchDetails.equityMatch ? '#059669' : '#dc2626' }}>
+                      {matchDetails.equityMatch ? '✓ Matched' : '✗ No Match'}
+                    </div>
+                  </>
+                )}
+
+                <div style={{ color: '#111827', fontWeight: 600, marginTop: '0.5rem' }}>Total Package</div>
+                <div style={{ fontWeight: 700, color: matchDetails.totalMatch ? '#059669' : '#dc2626', marginTop: '0.5rem' }}>
+                  {matchDetails.totalMatch ? '✓ Matched' : '✗ No Match'}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {txSignature && (

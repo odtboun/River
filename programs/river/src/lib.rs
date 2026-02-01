@@ -22,10 +22,19 @@ pub mod river {
         negotiation.id = negotiation_id;
         negotiation.employer = ctx.accounts.employer.key();
         negotiation.candidate = None;
-        negotiation.employer_max = None;
-        negotiation.candidate_min = None;
+        
+        // Initialize as None
+        negotiation.employer_base = None;
+        negotiation.employer_bonus = None;
+        negotiation.employer_equity = None;
+        
+        negotiation.candidate_base = None;
+        negotiation.candidate_bonus = None;
+        negotiation.candidate_equity = None;
+        
         negotiation.status = NegotiationStatus::Created;
         negotiation.result = MatchResult::Pending;
+        negotiation.match_details = None;
         
         msg!("Negotiation {} created by employer {}", negotiation_id, negotiation.employer);
         Ok(())
@@ -48,11 +57,13 @@ pub mod river {
         Ok(())
     }
 
-    /// Submit employer's maximum budget
-    /// When called via TEE endpoint, the value is encrypted in transit and memory
+    /// Submit employer's budget breakdown
+    /// When called via TEE endpoint, the values are encrypted in transit and memory
     pub fn submit_employer_budget(
         ctx: Context<SubmitBudget>,
-        max_budget: u64,
+        base: u64,
+        bonus: u64,
+        equity: u64,
     ) -> Result<()> {
         let negotiation = &mut ctx.accounts.negotiation;
         
@@ -61,12 +72,14 @@ pub mod river {
             RiverError::Unauthorized
         );
         require!(
-            negotiation.employer_max.is_none(),
+            negotiation.employer_base.is_none(), // Check one field is enough
             RiverError::AlreadySubmitted
         );
         
-        // Store the budget - only visible inside TEE when called via TEE endpoint
-        negotiation.employer_max = Some(max_budget);
+        // Store the budget components - only visible inside TEE when called via TEE endpoint
+        negotiation.employer_base = Some(base);
+        negotiation.employer_bonus = Some(bonus);
+        negotiation.employer_equity = Some(equity);
         
         // Check if we can determine result
         check_and_update_result(negotiation)?;
@@ -75,11 +88,13 @@ pub mod river {
         Ok(())
     }
 
-    /// Submit candidate's minimum salary requirement
-    /// When called via TEE endpoint, the value is encrypted in transit and memory
+    /// Submit candidate's minimum requirement breakdown
+    /// When called via TEE endpoint, the values are encrypted in transit and memory
     pub fn submit_candidate_requirement(
         ctx: Context<SubmitRequirement>,
-        min_salary: u64,
+        base: u64,
+        bonus: u64,
+        equity: u64,
     ) -> Result<()> {
         let negotiation = &mut ctx.accounts.negotiation;
         
@@ -88,12 +103,14 @@ pub mod river {
             RiverError::Unauthorized
         );
         require!(
-            negotiation.candidate_min.is_none(),
+            negotiation.candidate_base.is_none(), // Check one field is enough
             RiverError::AlreadySubmitted
         );
         
-        // Store the requirement - only visible inside TEE when called via TEE endpoint
-        negotiation.candidate_min = Some(min_salary);
+        // Store the requirement components - only visible inside TEE when called via TEE endpoint
+        negotiation.candidate_base = Some(base);
+        negotiation.candidate_bonus = Some(bonus);
+        negotiation.candidate_equity = Some(equity);
         
         // Check if we can determine result
         check_and_update_result(negotiation)?;
@@ -113,9 +130,15 @@ pub mod river {
         );
         
         // Clear the actual salary values before committing to L1
-        // Only the result (Match/NoMatch) is persisted on-chain
-        negotiation.employer_max = None;
-        negotiation.candidate_min = None;
+        // Only the result (Match/NoMatch + Details) is persisted on-chain
+        negotiation.employer_base = None;
+        negotiation.employer_bonus = None;
+        negotiation.employer_equity = None;
+        
+        negotiation.candidate_base = None;
+        negotiation.candidate_bonus = None;
+        negotiation.candidate_equity = None;
+        
         negotiation.status = NegotiationStatus::Finalized;
         
         msg!(
@@ -129,21 +152,53 @@ pub mod river {
 
 /// Check if both parties have submitted and determine the result
 fn check_and_update_result(negotiation: &mut Account<Negotiation>) -> Result<()> {
-    if let (Some(employer_max), Some(candidate_min)) = 
-        (negotiation.employer_max, negotiation.candidate_min) 
-    {
-        // The core comparison - done inside the TEE
-        // Neither party can see the other's value
-        if candidate_min <= employer_max {
+    if let (
+        Some(emp_base), Some(emp_bonus), Some(emp_equity),
+        Some(cand_base), Some(cand_bonus), Some(cand_equity)
+    ) = (
+        negotiation.employer_base, negotiation.employer_bonus, negotiation.employer_equity,
+        negotiation.candidate_base, negotiation.candidate_bonus, negotiation.candidate_equity
+    ) {
+        // Calculate totals
+        let emp_total = emp_base.saturating_add(emp_bonus).saturating_add(emp_equity);
+        let cand_total = cand_base.saturating_add(cand_bonus).saturating_add(cand_equity);
+
+        // Core comparison logic
+        let base_match = cand_base <= emp_base;
+        let bonus_match = cand_bonus <= emp_bonus;
+        let equity_match = cand_equity <= emp_equity;
+        // Total match is the most important for overall "Deal / No Deal" usually,
+        // but traditionally means the entire package fits.
+        // We will define "Total Match" as: Cand Total <= Emp Total.
+        let total_match = cand_total <= emp_total;
+
+        // Populate details
+        negotiation.match_details = Some(MatchDetails {
+            base_match,
+            bonus_match,
+            equity_match,
+            total_match,
+        });
+
+        // Determine overall outcome: Is it a match?
+        // Basic rule: If Total matches, it's a "Match".
+        // Or should we require ALL components?
+        // Usually in negotiation, if the total value is okay, it's a starting point,
+        // but the user asked for granular "what matched what doesn't".
+        // Let's set overall result based on Total Match for simplicity of "Yes/No",
+        // but the details will show the breakdown.
+        if total_match {
             negotiation.result = MatchResult::Match;
         } else {
             negotiation.result = MatchResult::NoMatch;
         }
+
         negotiation.status = NegotiationStatus::Complete;
         
         msg!(
-            "Negotiation complete: {:?}",
-            negotiation.result
+            "Negotiation complete: Result={:?}, Details={:?}",
+            negotiation.result,
+            negotiation.match_details
         );
     }
     Ok(())
@@ -226,21 +281,50 @@ pub struct Negotiation {
     pub id: u64,
     pub employer: Pubkey,
     pub candidate: Option<Pubkey>,
-    pub employer_max: Option<u64>,      // Cleared before L1 commit
-    pub candidate_min: Option<u64>,     // Cleared before L1 commit
+    
+    // Employer components (Cleared before L1 commit)
+    pub employer_base: Option<u64>,
+    pub employer_bonus: Option<u64>,
+    pub employer_equity: Option<u64>,
+    
+    // Candidate components (Cleared before L1 commit)
+    pub candidate_base: Option<u64>,
+    pub candidate_bonus: Option<u64>,
+    pub candidate_equity: Option<u64>,
+    
     pub status: NegotiationStatus,
     pub result: MatchResult,
+    pub match_details: Option<MatchDetails>, // Granular results
 }
 
 impl Negotiation {
     pub const LEN: usize = 
         8 +                    // id
         32 +                   // employer
-        (1 + 32) +            // candidate (Option<Pubkey>)
-        (1 + 8) +             // employer_max (Option<u64>)
-        (1 + 8) +             // candidate_min (Option<u64>)
+        (1 + 32) +             // candidate (Option<Pubkey>)
+        // Employer components
+        (1 + 8) +              // employer_base (Option<u64>)
+        (1 + 8) +              // employer_bonus
+        (1 + 8) +              // employer_equity
+        // Candidate components
+        (1 + 8) +              // candidate_base (Option<u64>)
+        (1 + 8) +              // candidate_bonus
+        (1 + 8) +              // candidate_equity
         1 +                    // status
-        1;                     // result
+        1 +                    // result
+        (1 + MatchDetails::LEN); // match_details (Option<MatchDetails>)
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, Debug)]
+pub struct MatchDetails {
+    pub base_match: bool,
+    pub bonus_match: bool,
+    pub equity_match: bool,
+    pub total_match: bool,
+}
+
+impl MatchDetails {
+    pub const LEN: usize = 1 + 1 + 1 + 1; // 4 bools
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, Debug)]

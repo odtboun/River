@@ -187,8 +187,8 @@ export function NegotiationApp() {
         }
     }, [connected, publicKey, loadNegotiation, getClient]);
 
-    // Handle employer submitting budget
-    const handleEmployerSubmit = useCallback(async (maxBudget: number) => {
+    // Handle employer budget submission
+    const handleEmployerSubmit = useCallback(async (base: number, bonus: number, equity: number) => {
         if (!connected || !publicKey || !negotiationId) {
             setError('Please connect first');
             return;
@@ -201,7 +201,7 @@ export function NegotiationApp() {
             const client = getClient();
             if (!client) throw new Error('Client not initialized');
 
-            const tx = await client.submitEmployerBudget(negotiationId, maxBudget);
+            const tx = await client.submitEmployerBudget(negotiationId, base, bonus, equity);
             setTxSignature(tx);
 
             // Reload negotiation data
@@ -241,8 +241,8 @@ export function NegotiationApp() {
         }
     }, [connected, publicKey, negotiationId, loadNegotiation, getClient]);
 
-    // Handle candidate submitting requirement
-    const handleCandidateSubmit = useCallback(async (minSalary: number) => {
+    // Handle candidate requirement submission
+    const handleCandidateSubmit = useCallback(async (base: number, bonus: number, equity: number) => {
         if (!connected || !publicKey || !negotiationId) {
             setError('Please connect first');
             return;
@@ -255,7 +255,7 @@ export function NegotiationApp() {
             const client = getClient();
             if (!client) throw new Error('Client not initialized');
 
-            const tx = await client.submitCandidateRequirement(negotiationId, minSalary);
+            const tx = await client.submitCandidateRequirement(negotiationId, base, bonus, equity);
             setTxSignature(tx);
 
             // Reload negotiation data
@@ -350,6 +350,7 @@ export function NegotiationApp() {
                         onCreateNegotiation={handleCreateNegotiation}
                         onSubmit={handleEmployerSubmit}
                         onReset={handleReset}
+                        matchDetails={negotiation?.matchDetails}
                     />
                 )}
 
@@ -367,6 +368,7 @@ export function NegotiationApp() {
                         onReset={handleReset}
                         walletAddress={publicKey?.toBase58() || null}
                         activeFields={activeFields}
+                        matchDetails={negotiation?.matchDetails}
                     />
                 )}
             </main>

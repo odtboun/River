@@ -48,7 +48,11 @@ const IDL: any = {
         { name: 'negotiation', isMut: true, isSigner: false },
         { name: 'employer', isMut: false, isSigner: true },
       ],
-      args: [{ name: 'maxBudget', type: 'u64' }],
+      args: [
+        { name: 'base', type: 'u64' },
+        { name: 'bonus', type: 'u64' },
+        { name: 'equity', type: 'u64' },
+      ],
     },
     {
       name: 'submitCandidateRequirement',
@@ -56,7 +60,11 @@ const IDL: any = {
         { name: 'negotiation', isMut: true, isSigner: false },
         { name: 'candidate', isMut: false, isSigner: true },
       ],
-      args: [{ name: 'minSalary', type: 'u64' }],
+      args: [
+        { name: 'base', type: 'u64' },
+        { name: 'bonus', type: 'u64' },
+        { name: 'equity', type: 'u64' },
+      ],
     },
     {
       name: 'finalizeNegotiation',
@@ -76,10 +84,18 @@ const IDL: any = {
           { name: 'id', type: 'u64' },
           { name: 'employer', type: 'publicKey' },
           { name: 'candidate', type: { option: 'publicKey' } },
-          { name: 'employerMax', type: { option: 'u64' } },
-          { name: 'candidateMin', type: { option: 'u64' } },
+
+          { name: 'employerBase', type: { option: 'u64' } },
+          { name: 'employerBonus', type: { option: 'u64' } },
+          { name: 'employerEquity', type: { option: 'u64' } },
+
+          { name: 'candidateBase', type: { option: 'u64' } },
+          { name: 'candidateBonus', type: { option: 'u64' } },
+          { name: 'candidateEquity', type: { option: 'u64' } },
+
           { name: 'status', type: { defined: 'NegotiationStatus' } },
           { name: 'result', type: { defined: 'MatchResult' } },
+          { name: 'matchDetails', type: { option: { defined: 'MatchDetails' } } },
         ],
       },
     },
@@ -110,6 +126,18 @@ const IDL: any = {
         ],
       },
     },
+    {
+      name: 'MatchDetails',
+      type: {
+        kind: 'struct',
+        fields: [
+          { name: 'baseMatch', type: 'bool' },
+          { name: 'bonusMatch', type: 'bool' },
+          { name: 'equityMatch', type: 'bool' },
+          { name: 'totalMatch', type: 'bool' },
+        ],
+      },
+    }
   ],
   errors: [
     { code: 6000, name: 'NegotiationFull', msg: 'Negotiation is already full' },
@@ -128,10 +156,23 @@ export interface NegotiationAccount {
   id: BN;
   employer: PublicKey;
   candidate: PublicKey | null;
-  employerMax: BN | null;
-  candidateMin: BN | null;
+
+  employerBase: BN | null;
+  employerBonus: BN | null;
+  employerEquity: BN | null;
+
+  candidateBase: BN | null;
+  candidateBonus: BN | null;
+  candidateEquity: BN | null;
+
   status: { created?: object; ready?: object; employerSubmitted?: object; candidateSubmitted?: object; complete?: object; finalized?: object };
   result: { pending?: object; match?: object; noMatch?: object };
+  matchDetails: {
+    baseMatch: boolean;
+    bonusMatch: boolean;
+    equityMatch: boolean;
+    totalMatch: boolean;
+  } | null;
 }
 
 // Frontend-friendly negotiation data
@@ -145,6 +186,13 @@ export interface NegotiationData {
   // Track submission status (values remain private)
   hasEmployerSubmitted: boolean;
   hasCandidateSubmitted: boolean;
+  // Match Details
+  matchDetails: {
+    baseMatch: boolean;
+    bonusMatch: boolean;
+    equityMatch: boolean;
+    totalMatch: boolean;
+  } | null;
 }
 
 // TEE Auth State
@@ -190,8 +238,9 @@ export function parseNegotiationAccount(account: NegotiationAccount, pda: Public
     status: parseStatus(account.status),
     result: parseResult(account.result),
     // Values remain private - we just track if they've been submitted
-    hasEmployerSubmitted: account.employerMax !== null,
-    hasCandidateSubmitted: account.candidateMin !== null,
+    hasEmployerSubmitted: account.employerBase !== null,
+    hasCandidateSubmitted: account.candidateBase !== null,
+    matchDetails: account.matchDetails,
   };
 }
 
@@ -423,7 +472,12 @@ export class RiverClient {
   }
 
   // Submit employer's max budget via TEE (confidential)
-  async submitEmployerBudget(negotiationId: BN, maxBudget: number): Promise<string> {
+  async submitEmployerBudget(
+    negotiationId: BN,
+    base: number,
+    bonus: number,
+    equity: number
+  ): Promise<string> {
     const [pda] = getNegotiationPDA(negotiationId);
 
     // If TEE is available but account not delegated, delegate first
@@ -440,16 +494,18 @@ export class RiverClient {
     const useTee = this.isTeeAvailable() && this.isAccountDelegated(pda);
     const program = this.getProgram(useTee);
 
+    const total = base + bonus + equity;
+
     if (useTee) {
-      console.log('🔒 Submitting employer budget via TEE (confidential - value encrypted)');
-      console.log(`   Budget: $${maxBudget.toLocaleString()} (will NOT appear on-chain)`);
+      console.log('🔒 Submitting employer budget via TEE (confidential - values encrypted)');
+      console.log(`   Budget: $${total.toLocaleString()} (base: ${base}, bonus: ${bonus}, equity: ${equity})`);
     } else {
       console.warn('⚠️  Submitting employer budget via L1 (PUBLIC - value visible on-chain)');
-      console.warn(`   Budget: $${maxBudget.toLocaleString()} (will be publicly visible)`);
+      console.warn(`   Budget: $${total.toLocaleString()} (will be publicly visible)`);
     }
 
     const tx = await program.methods
-      .submitEmployerBudget(new BN(maxBudget))
+      .submitEmployerBudget(new BN(base), new BN(bonus), new BN(equity))
       .accounts({
         negotiation: pda,
         employer: this.wallet.publicKey,
@@ -460,7 +516,12 @@ export class RiverClient {
   }
 
   // Submit candidate's min salary via TEE (confidential)
-  async submitCandidateRequirement(negotiationId: BN, minSalary: number): Promise<string> {
+  async submitCandidateRequirement(
+    negotiationId: BN,
+    base: number,
+    bonus: number,
+    equity: number
+  ): Promise<string> {
     const [pda] = getNegotiationPDA(negotiationId);
 
     // If TEE is available but account not delegated, delegate first
@@ -477,16 +538,18 @@ export class RiverClient {
     const useTee = this.isTeeAvailable() && this.isAccountDelegated(pda);
     const program = this.getProgram(useTee);
 
+    const total = base + bonus + equity;
+
     if (useTee) {
-      console.log('🔒 Submitting candidate requirement via TEE (confidential - value encrypted)');
-      console.log(`   Minimum salary: $${minSalary.toLocaleString()} (will NOT appear on-chain)`);
+      console.log('🔒 Submitting candidate requirement via TEE (confidential - values encrypted)');
+      console.log(`   Requirement: $${total.toLocaleString()} (base: ${base}, bonus: ${bonus}, equity: ${equity})`);
     } else {
       console.warn('⚠️  Submitting candidate requirement via L1 (PUBLIC - value visible on-chain)');
-      console.warn(`   Minimum salary: $${minSalary.toLocaleString()} (will be publicly visible)`);
+      console.warn(`   Requirement: $${total.toLocaleString()} (will be publicly visible)`);
     }
 
     const tx = await program.methods
-      .submitCandidateRequirement(new BN(minSalary))
+      .submitCandidateRequirement(new BN(base), new BN(bonus), new BN(equity))
       .accounts({
         negotiation: pda,
         candidate: this.wallet.publicKey,

@@ -12,8 +12,15 @@ interface EmployerFlowProps {
   teeActive?: boolean;
   isBurnerWallet?: boolean;
   onCreateNegotiation: () => Promise<void>;
-  onSubmit: (maxBudget: number) => Promise<void>;
+  onSubmit: (base: number, bonus: number, equity: number) => Promise<void>;
   onReset: () => void;
+  // Make matchDetails optional in negotiation data or passed explicitly if simpler
+  matchDetails?: {
+    baseMatch: boolean;
+    bonusMatch: boolean;
+    equityMatch: boolean;
+    totalMatch: boolean;
+  } | null;
 }
 
 export function EmployerFlow({
@@ -27,7 +34,8 @@ export function EmployerFlow({
   isBurnerWallet = false,
   onCreateNegotiation,
   onSubmit,
-  onReset
+  onReset,
+  matchDetails
 }: EmployerFlowProps) {
   const [baseSalary, setBaseSalary] = useState('');
   const [bonus, setBonus] = useState('');
@@ -68,11 +76,23 @@ export function EmployerFlow({
   };
 
   const handleSubmit = useCallback(async () => {
-    const value = parseInt(total);
-    if (value > 0) {
-      await onSubmit(value);
+    if (!isCustomMode) {
+      // Basic mode: Base only (or treated as base)
+      const val = parseInt(baseSalary);
+      if (val > 0) {
+        await onSubmit(val, 0, 0);
+      }
+    } else {
+      // Custom mode
+      const baseVal = parseInt(baseSalary) || 0;
+      const bonusVal = parseInt(bonus) || 0;
+      const equityVal = parseInt(equity) || 0;
+
+      if (baseVal > 0 || bonusVal > 0 || equityVal > 0) {
+        await onSubmit(baseVal, bonusVal, equityVal);
+      }
     }
-  }, [total, onSubmit]);
+  }, [baseSalary, bonus, equity, isCustomMode, onSubmit]);
 
   const getActiveFields = () => {
     const fields = ['base'];
@@ -313,7 +333,7 @@ export function EmployerFlow({
         <button
           className="btn btn-primary btn-full btn-large"
           onClick={handleSubmit}
-          disabled={!total || parseInt(total) <= 0 || loading}
+          disabled={!baseSalary || (isCustomMode && parseInt(baseSalary) <= 0) || loading}
         >
           {loading ? 'Submitting...' : 'Lock in Budget'}
         </button>
@@ -440,6 +460,42 @@ export function EmployerFlow({
               ? 'Great news! The candidate\'s minimum is within your budget.'
               : 'The candidate\'s minimum requirement exceeds your budget.'}
           </p>
+
+          {matchDetails && (
+            <div style={{ marginTop: '1.5rem', textAlign: 'left', borderTop: '1px solid #e5e7eb', paddingTop: '1rem' }}>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: 600, color: '#4b5563', marginBottom: '0.75rem' }}>Breakdown (Your View)</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.5rem', fontSize: '0.9rem' }}>
+                <div style={{ color: '#6b7280' }}>Base Salary</div>
+                <div style={{ fontWeight: 600, color: matchDetails.baseMatch ? '#059669' : '#dc2626' }}>
+                  {matchDetails.baseMatch ? '✓ Within Budget' : '✗ Exceeds Budget'}
+                </div>
+
+                {getActiveFields().includes('bonus') && (
+                  <>
+                    <div style={{ color: '#6b7280' }}>Bonus</div>
+                    <div style={{ fontWeight: 600, color: matchDetails.bonusMatch ? '#059669' : '#dc2626' }}>
+                      {matchDetails.bonusMatch ? '✓ Within Budget' : '✗ Exceeds Budget'}
+                    </div>
+                  </>
+                )}
+
+                {getActiveFields().includes('equity') && (
+                  <>
+                    <div style={{ color: '#6b7280' }}>Equity</div>
+                    <div style={{ fontWeight: 600, color: matchDetails.equityMatch ? '#059669' : '#dc2626' }}>
+                      {matchDetails.equityMatch ? '✓ Within Budget' : '✗ Exceeds Budget'}
+                    </div>
+                  </>
+                )}
+
+                <div style={{ color: '#111827', fontWeight: 600, marginTop: '0.5rem' }}>Total Package</div>
+                <div style={{ fontWeight: 700, color: matchDetails.totalMatch ? '#059669' : '#dc2626', marginTop: '0.5rem' }}>
+                  {matchDetails.totalMatch ? '✓ Within Budget' : '✗ Exceeds Budget'}
+                </div>
+              </div>
+            </div>
+          )}
+
           <div style={{ marginTop: '1rem', padding: '0.5rem', background: 'rgba(0,0,0,0.05)', borderRadius: '4px' }}>
             <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>Offer Structure Used:</div>
             <div style={{ fontSize: '0.85rem', color: '#666' }}>
