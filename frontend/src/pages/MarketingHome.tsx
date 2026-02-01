@@ -127,7 +127,7 @@ export function MarketingHome() {
                             textShadow: '0 2px 10px rgba(255,255,255,0.5)'
                         }}>
                             Salary Negotiation.<br />
-                            <span style={{ color: '#6b7280' }}>Double-Blind. Private.</span>
+                            <span style={{ color: '#059669' }}>Double-Blind. Private.</span>
                         </h1>
 
                         <p style={{
