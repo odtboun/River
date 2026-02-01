@@ -32,6 +32,12 @@ export function EmployerFlow({
   const [baseSalary, setBaseSalary] = useState('');
   const [bonus, setBonus] = useState('');
   const [equity, setEquity] = useState('');
+
+  // Configuration State
+  const [isCustomMode, setIsCustomMode] = useState(false);
+  const [useBonus, setUseBonus] = useState(false);
+  const [useEquity, setUseEquity] = useState(false);
+
   const [copied, setCopied] = useState(false);
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>, setter: (val: string) => void) => {
@@ -52,13 +58,26 @@ export function EmployerFlow({
     }
   }, [total, onSubmit]);
 
+  const getActiveFields = () => {
+    const fields = ['base'];
+    if (isCustomMode) {
+      if (useBonus) fields.push('bonus');
+      if (useEquity) fields.push('equity');
+    }
+    return fields;
+  };
+
   const handleCopy = useCallback(async () => {
     if (shareUrl) {
-      await navigator.clipboard.writeText(shareUrl);
+      const fields = getActiveFields();
+      const fieldsParam = fields.join(',');
+      const finalUrl = fields.length > 1 ? `${shareUrl}&fields=${fieldsParam}` : shareUrl;
+
+      await navigator.clipboard.writeText(finalUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
-  }, [shareUrl]);
+  }, [shareUrl, isCustomMode, useBonus, useEquity]);
 
   const formatNumber = (val: string) => {
     if (!val) return '';
@@ -126,8 +145,7 @@ export function EmployerFlow({
     );
   }
 
-  // Step 1: Enter budget (negotiation created but budget not submitted)
-  // Use hasEmployerSubmitted flag since status doesn't change on submission
+  // Step 1: Enter budget
   const needsBudgetInput = negotiation && !negotiation.hasEmployerSubmitted;
 
   if (needsBudgetInput) {
@@ -136,13 +154,56 @@ export function EmployerFlow({
         <div className="page-header">
           <h1 className="page-title">Set your budget</h1>
           <p className="page-description">
-            Enter the maximum salary you're willing to offer. This number will be processed securely.
+            Configure the offer structure and enter your maximum budget.
           </p>
         </div>
 
         <div className="card">
+          {/* Configuration Toggles */}
+          <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '1rem' }}>
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+              <button
+                className={`btn ${!isCustomMode ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setIsCustomMode(false)}
+                style={{ flex: 1, padding: '0.5rem' }}
+              >
+                Basic (Salary Only)
+              </button>
+              <button
+                className={`btn ${isCustomMode ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setIsCustomMode(true)}
+                style={{ flex: 1, padding: '0.5rem' }}
+              >
+                Complex (Total Comp)
+              </button>
+            </div>
+
+            {isCustomMode && (
+              <div style={{ display: 'flex', gap: '1.5rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={useBonus}
+                    onChange={(e) => setUseBonus(e.target.checked)}
+                    style={{ marginRight: '0.5rem' }}
+                  />
+                  Performance Bonus
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={useEquity}
+                    onChange={(e) => setUseEquity(e.target.checked)}
+                    style={{ marginRight: '0.5rem' }}
+                  />
+                  Equity
+                </label>
+              </div>
+            )}
+          </div>
+
           <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-            <label className="form-label">Base Salary</label>
+            <label className="form-label">Max Base Salary</label>
             <div className="input-wrapper">
               <span className="input-prefix">$</span>
               <input
@@ -157,37 +218,43 @@ export function EmployerFlow({
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-            <div className="form-group">
-              <label className="form-label">Signing Bonus</label>
-              <div className="input-wrapper">
-                <span className="input-prefix">$</span>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  className="form-input"
-                  placeholder="20,000"
-                  value={formatNumber(bonus)}
-                  onChange={(e) => handleInputChange(e, setBonus)}
-                />
-              </div>
-            </div>
+          {(isCustomMode && (useBonus || useEquity)) && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+              {useBonus && (
+                <div className="form-group">
+                  <label className="form-label">Max Bonus</label>
+                  <div className="input-wrapper">
+                    <span className="input-prefix">$</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      className="form-input"
+                      placeholder="20,000"
+                      value={formatNumber(bonus)}
+                      onChange={(e) => handleInputChange(e, setBonus)}
+                    />
+                  </div>
+                </div>
+              )}
 
-            <div className="form-group">
-              <label className="form-label">Equity Value</label>
-              <div className="input-wrapper">
-                <span className="input-prefix">$</span>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  className="form-input"
-                  placeholder="50,000"
-                  value={formatNumber(equity)}
-                  onChange={(e) => handleInputChange(e, setEquity)}
-                />
-              </div>
+              {useEquity && (
+                <div className="form-group">
+                  <label className="form-label">Max Equity</label>
+                  <div className="input-wrapper">
+                    <span className="input-prefix">$</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      className="form-input"
+                      placeholder="50,000"
+                      value={formatNumber(equity)}
+                      onChange={(e) => handleInputChange(e, setEquity)}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
+          )}
 
           <div style={{
             background: '#f3f4f6',
@@ -198,7 +265,7 @@ export function EmployerFlow({
             justifyContent: 'space-between',
             alignItems: 'center'
           }}>
-            <span style={{ color: '#4b5563', fontWeight: 500 }}>Total Package</span>
+            <span style={{ color: '#4b5563', fontWeight: 500 }}>Max Total Budget</span>
             <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#059669' }}>
               ${parseInt(total) > 0 ? parseInt(total).toLocaleString() : '0'}
             </span>
@@ -236,7 +303,7 @@ export function EmployerFlow({
     );
   }
 
-  // Step 2: Share link & wait for candidate (employer has submitted, waiting for candidate)
+  // Step 2: Share link
   const waitingForCandidate = negotiation &&
     negotiation.hasEmployerSubmitted &&
     !negotiation.hasCandidateSubmitted &&
@@ -244,12 +311,18 @@ export function EmployerFlow({
     negotiation.status !== 'finalized';
 
   if (waitingForCandidate) {
+    const fields = getActiveFields();
+    // Only append fields if complex mode
+    const finalShareUrl = (fields.length > 1 && shareUrl)
+      ? `${shareUrl}&fields=${fields.join(',')}`
+      : shareUrl;
+
     return (
       <>
         <div className="page-header">
           <h1 className="page-title">Share with candidate</h1>
           <p className="page-description">
-            Your budget is locked on-chain. Send this link to your candidate.
+            Your budget is locked. Send this link to your candidate.
           </p>
         </div>
 
@@ -260,13 +333,18 @@ export function EmployerFlow({
               <input
                 type="text"
                 className="link-input"
-                value={shareUrl || ''}
+                value={finalShareUrl || ''}
                 readOnly
               />
               <button className="btn btn-secondary btn-copy" onClick={handleCopy}>
                 {copied ? 'Copied!' : 'Copy'}
               </button>
             </div>
+            {fields.length > 1 && (
+              <p className="form-hint" style={{ marginTop: '0.5rem', fontSize: '0.875rem' }}>
+                Includes configuration: {fields.filter(f => f !== 'base').join(', ')}
+              </p>
+            )}
           </div>
         </div>
 
@@ -324,6 +402,12 @@ export function EmployerFlow({
               ? 'Great news! The candidate\'s minimum is within your budget.'
               : 'The candidate\'s minimum requirement exceeds your budget.'}
           </p>
+          <div style={{ marginTop: '1rem', padding: '0.5rem', background: 'rgba(0,0,0,0.05)', borderRadius: '4px' }}>
+            <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>Offer Structure Used:</div>
+            <div style={{ fontSize: '0.85rem', color: '#666' }}>
+              {getActiveFields().map(f => f.charAt(0).toUpperCase() + f.slice(1)).join(' + ')}
+            </div>
+          </div>
         </div>
 
         {txSignature && (
@@ -345,7 +429,7 @@ export function EmployerFlow({
     );
   }
 
-  // Fallback: waiting for data
+  // Fallback
   return (
     <div className="card">
       <div className="status-waiting">
