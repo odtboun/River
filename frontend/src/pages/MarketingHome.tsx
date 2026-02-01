@@ -138,7 +138,7 @@ export function MarketingHome() {
                             lineHeight: 1.6
                         }}>
                             Discover if your expectations match without ever revealing your number.
-                            Powered by Intel TDX Trusted Execution Environments.
+                            We act as a secure, neutral mediator that guarantees your privacy.
                         </p>
 
                         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
