@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { BN } from '@coral-xyz/anchor';
 import { NegotiationData } from '../lib';
 
@@ -35,16 +35,32 @@ export function CandidateFlow({
   const [bonus, setBonus] = useState('');
   const [equity, setEquity] = useState('');
 
+  // Total Logic
+  const [total, setTotal] = useState('');
+  const [isTotalManual, setIsTotalManual] = useState(false);
+
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>, setter: (val: string) => void) => {
     const raw = e.target.value.replace(/[^0-9]/g, '');
     setter(raw);
   }, []);
 
-  const total = (
-    (parseInt(baseSalary) || 0) +
-    (parseInt(bonus) || 0) +
-    (parseInt(equity) || 0)
-  ).toString();
+  // Auto-calculate total if not manually edited
+  useEffect(() => {
+    if (!isTotalManual) {
+      const sum = (
+        (parseInt(baseSalary) || 0) +
+        (parseInt(bonus) || 0) +
+        (parseInt(equity) || 0)
+      );
+      setTotal(sum > 0 ? sum.toString() : '');
+    }
+  }, [baseSalary, bonus, equity, isTotalManual]);
+
+  const handleTotalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/[^0-9]/g, '');
+    setTotal(raw);
+    setIsTotalManual(true);
+  };
 
   const handleSubmit = useCallback(async () => {
     const value = parseInt(total);
@@ -271,14 +287,31 @@ export function CandidateFlow({
             padding: '1rem',
             borderRadius: '8px',
             marginBottom: '0.5rem',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
           }}>
-            <span style={{ color: '#4b5563', fontWeight: 500 }}>Total Package</span>
-            <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#059669' }}>
-              ${parseInt(total) > 0 ? parseInt(total).toLocaleString() : '0'}
-            </span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <label className="form-label" style={{ marginBottom: 0 }}>Min Total Package</label>
+              {isTotalManual && (
+                <button
+                  onClick={() => setIsTotalManual(false)}
+                  style={{ fontSize: '0.75rem', color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                  Reset to Auto-Sum
+                </button>
+              )}
+            </div>
+
+            <div className="input-wrapper" style={{ background: 'white', border: '1px solid #d1d5db', borderRadius: '6px' }}>
+              <span className="input-prefix" style={{ paddingLeft: '0.75rem' }}>$</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                className="form-input"
+                style={{ fontSize: '1.25rem', fontWeight: 700, color: '#059669', paddingLeft: '0.25rem' }}
+                placeholder="0"
+                value={formatNumber(total)}
+                onChange={handleTotalChange}
+              />
+            </div>
           </div>
         </div>
 
