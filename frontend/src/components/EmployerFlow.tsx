@@ -272,40 +272,42 @@ export function EmployerFlow({
             </div>
           )}
 
-          <div style={{
-            background: '#f3f4f6',
-            padding: '1rem',
-            borderRadius: '8px',
-            marginBottom: '0.5rem',
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <label className="form-label" style={{ marginBottom: 0 }}>Max Total Budget</label>
-              {isTotalManual && (
-                <button
-                  onClick={() => setIsTotalManual(false)}
-                  style={{ fontSize: '0.75rem', color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
-                >
-                  Reset to Auto-Sum
-                </button>
-              )}
-            </div>
+          {isCustomMode && (
+            <div style={{
+              background: '#f3f4f6',
+              padding: '1rem',
+              borderRadius: '8px',
+              marginBottom: '0.5rem',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <label className="form-label" style={{ marginBottom: 0 }}>Max Total Budget</label>
+                {isTotalManual && (
+                  <button
+                    onClick={() => setIsTotalManual(false)}
+                    style={{ fontSize: '0.75rem', color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                  >
+                    Reset to Auto-Sum
+                  </button>
+                )}
+              </div>
 
-            <div className="input-wrapper" style={{ background: 'white', border: '1px solid #d1d5db', borderRadius: '6px' }}>
-              <span className="input-prefix" style={{ paddingLeft: '0.75rem' }}>$</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                className="form-input"
-                style={{ fontSize: '1.25rem', fontWeight: 700, color: '#059669', paddingLeft: '0.25rem' }}
-                placeholder="0"
-                value={formatNumber(total)}
-                onChange={handleTotalChange}
-              />
+              <div className="input-wrapper" style={{ background: 'white', border: '1px solid #d1d5db', borderRadius: '6px', display: 'flex', alignItems: 'center' }}>
+                <span className="input-prefix" style={{ paddingLeft: '0.75rem', color: '#6b7280' }}>$</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  className="form-input"
+                  style={{ fontSize: '1.25rem', fontWeight: 700, color: '#059669', paddingLeft: '0.5rem', border: 'none', flex: 1, boxShadow: 'none' }}
+                  placeholder="0"
+                  value={formatNumber(total)}
+                  onChange={handleTotalChange}
+                />
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#666', marginTop: '0.5rem' }}>
+                This is the binding number used for the match. {isTotalManual ? "You have set a custom total." : "It is currently the sum of your components."}
+              </div>
             </div>
-            <div style={{ fontSize: '0.75rem', color: '#666', marginTop: '0.5rem' }}>
-              This is the binding number used for the match. {isTotalManual ? "You have set a custom total." : "It is currently the sum of your components."}
-            </div>
-          </div>
+          )}
         </div>
 
         <button
