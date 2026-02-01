@@ -64,3 +64,4 @@ coverage/
 *.log
 *.tmp
 *.temp
+.vercel

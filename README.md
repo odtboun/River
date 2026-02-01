@@ -77,7 +77,7 @@ PER with TEE solves this by acting as a **hardware-isolated blind third party**:
 
 ## Demo
 
-**Live Demo:** Coming soon
+**Live Demo:** [riverprivacy.vercel.app](https://riverprivacy.vercel.app)
 
 ### TEE Mode (Real Wallet)
 - Requires Phantom, Solflare, Backpack, or similar

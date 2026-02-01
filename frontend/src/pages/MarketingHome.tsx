@@ -77,7 +77,7 @@ export function MarketingHome() {
                     <div style={{
                         position: 'absolute',
                         top: 0, left: 0, width: '100%', height: '100%',
-                        backgroundImage: 'url(/abstract-river.png)',
+                        backgroundImage: 'url(/abstract-river.jpg)',
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
                         zIndex: 0
