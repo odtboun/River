@@ -300,13 +300,13 @@ export function CandidateFlow({
               )}
             </div>
 
-            <div className="input-wrapper" style={{ background: 'white', border: '1px solid #d1d5db', borderRadius: '6px' }}>
-              <span className="input-prefix" style={{ paddingLeft: '0.75rem' }}>$</span>
+            <div className="input-wrapper">
+              <span className="input-prefix">$</span>
               <input
                 type="text"
                 inputMode="numeric"
                 className="form-input"
-                style={{ fontSize: '1.25rem', fontWeight: 700, color: '#059669', paddingLeft: '0.25rem' }}
+                style={{ fontSize: '1.25rem', fontWeight: 700, color: '#059669' }}
                 placeholder="0"
                 value={formatNumber(total)}
                 onChange={handleTotalChange}
