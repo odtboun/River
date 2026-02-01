@@ -17,7 +17,7 @@ export const TEE_CLUSTER = 'devnet'; // Specify devnet cluster
 export const TEE_VALIDATOR = new PublicKey('FnE6VJT5QNZdedZPnCoLsARgBwoE6DeJNjBs2H1gySXA');
 
 // Standard Solana Devnet RPC
-export const RPC_ENDPOINT = 'https://api.devnet.solana.com';
+export const RPC_ENDPOINT = import.meta.env.VITE_RPC_ENDPOINT ?? 'https://api.devnet.solana.com';
 
 // IDL for the River program (Anchor 0.29 format - matches deployed program)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
