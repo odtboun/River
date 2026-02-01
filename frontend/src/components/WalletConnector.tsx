@@ -5,16 +5,16 @@ import { useRiverWallet } from '../hooks/useRiverWallet';
 
 export function WalletConnector() {
   const { connecting: externalConnecting } = useWallet();
-  const { 
-    connected, 
-    connecting, 
-    publicKey, 
+  const {
+    connected,
+    connecting,
+    publicKey,
     balance,
     connectBurner,
     disconnect,
-    isBurnerWallet 
+    isBurnerWallet
   } = useRiverWallet();
-  
+
   const [showOptions, setShowOptions] = useState(false);
 
   // Truncate address for display
@@ -26,7 +26,7 @@ export function WalletConnector() {
   if (connected && publicKey) {
     return (
       <div className="wallet-connected">
-        <button 
+        <button
           className="wallet-info-btn"
           onClick={() => setShowOptions(!showOptions)}
         >
@@ -38,7 +38,7 @@ export function WalletConnector() {
             <span className="wallet-balance">{balance.toFixed(3)} SOL</span>
           )}
         </button>
-        
+
         {showOptions && (
           <div className="wallet-dropdown">
             <div className="wallet-dropdown-info">
@@ -68,7 +68,7 @@ export function WalletConnector() {
         </button>
       ) : (
         <>
-          <button 
+          <button
             className="btn btn-primary wallet-quick-btn"
             onClick={connectBurner}
           >
@@ -84,16 +84,16 @@ export function WalletConnector() {
 
 // Simpler inline version for header
 export function WalletButton() {
-  const { 
-    connected, 
-    connecting, 
-    publicKey, 
+  const {
+    connected,
+    connecting,
+    publicKey,
     balance,
     connectBurner,
-    isBurnerWallet 
+    isBurnerWallet
   } = useRiverWallet();
   const { connecting: externalConnecting, select, wallets } = useWallet();
-  
+
   const [showMenu, setShowMenu] = useState(false);
 
   const truncateAddress = (address: string) => {
@@ -103,7 +103,7 @@ export function WalletButton() {
   if (connected && publicKey) {
     return (
       <div className="wallet-btn-container">
-        <button 
+        <button
           className="wallet-btn connected"
           onClick={() => setShowMenu(!showMenu)}
         >
@@ -120,7 +120,7 @@ export function WalletButton() {
 
   return (
     <div className="wallet-btn-container">
-      <button 
+      <button
         className="wallet-btn"
         onClick={() => setShowMenu(!showMenu)}
         disabled={connecting || externalConnecting}
@@ -129,13 +129,13 @@ export function WalletButton() {
       </button>
       {showMenu && (
         <div className="wallet-menu">
-          <button 
+          <button
             className="wallet-menu-item primary"
             onClick={() => { connectBurner(); setShowMenu(false); }}
           >
             <span>🔥</span>
             <div>
-              <strong>Quick Start</strong>
+              <strong>Quick Start (for tests only)</strong>
               <small>No wallet needed</small>
             </div>
           </button>
@@ -162,10 +162,10 @@ export function WalletButton() {
 }
 
 function WalletMenu({ onClose }: { onClose: () => void }) {
-  const { 
-    publicKey, 
-    balance, 
-    disconnect, 
+  const {
+    publicKey,
+    balance,
+    disconnect,
     isBurnerWallet,
     exportWallet,
     refreshBalance
