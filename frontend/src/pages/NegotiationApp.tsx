@@ -99,27 +99,7 @@ export function NegotiationApp() {
         }
     }, []);
 
-    // ... existing loadNegotiation ...
 
-    // ... inside render ...
-    {
-        view === 'candidate' && (
-            <CandidateFlow
-                connected={connected}
-                negotiation={negotiation}
-                negotiationId={negotiationId}
-                loading={loading}
-                txSignature={txSignature}
-                teeActive={teeStatus === 'connected'}
-                isBurnerWallet={isBurnerWallet}
-                onJoin={handleJoinNegotiation}
-                onSubmit={handleCandidateSubmit}
-                onReset={handleReset}
-                walletAddress={publicKey?.toBase58() || null}
-                activeFields={activeFields}
-            />
-        )
-    }
 
     // Load negotiation from chain
     const loadNegotiation = useCallback(async (id: BN) => {
