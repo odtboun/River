@@ -228,37 +228,43 @@ export function CandidateFlow({
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-            <div className="form-group">
-              <label className="form-label">Signing Bonus</label>
-              <div className="input-wrapper">
-                <span className="input-prefix">$</span>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  className="form-input"
-                  placeholder="20,000"
-                  value={formatNumber(bonus)}
-                  onChange={(e) => handleInputChange(e, setBonus)}
-                />
-              </div>
-            </div>
+          {(activeFields.includes('bonus') || activeFields.includes('equity')) && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+              {activeFields.includes('bonus') && (
+                <div className="form-group">
+                  <label className="form-label">Min Performance Bonus</label>
+                  <div className="input-wrapper">
+                    <span className="input-prefix">$</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      className="form-input"
+                      placeholder="20,000"
+                      value={formatNumber(bonus)}
+                      onChange={(e) => handleInputChange(e, setBonus)}
+                    />
+                  </div>
+                </div>
+              )}
 
-            <div className="form-group">
-              <label className="form-label">Equity Value</label>
-              <div className="input-wrapper">
-                <span className="input-prefix">$</span>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  className="form-input"
-                  placeholder="50,000"
-                  value={formatNumber(equity)}
-                  onChange={(e) => handleInputChange(e, setEquity)}
-                />
-              </div>
+              {activeFields.includes('equity') && (
+                <div className="form-group">
+                  <label className="form-label">Min Equity Value</label>
+                  <div className="input-wrapper">
+                    <span className="input-prefix">$</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      className="form-input"
+                      placeholder="50,000"
+                      value={formatNumber(equity)}
+                      onChange={(e) => handleInputChange(e, setEquity)}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
+          )}
 
           <div style={{
             background: '#f3f4f6',
@@ -315,7 +321,7 @@ export function CandidateFlow({
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
           </svg>
-          <span>{teeActive ? 'TEE active - your number encrypted in hardware' : 'Your number will never be revealed to the employer'}</span>
+          <span>{teeActive ? 'TEE active - values encrypted in hardware' : 'Your salary requirement will remain private'}</span>
         </div>
       </>
     );
