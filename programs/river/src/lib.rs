@@ -27,10 +27,12 @@ pub mod river {
         negotiation.employer_base = None;
         negotiation.employer_bonus = None;
         negotiation.employer_equity = None;
+        negotiation.employer_total = None;
         
         negotiation.candidate_base = None;
         negotiation.candidate_bonus = None;
         negotiation.candidate_equity = None;
+        negotiation.candidate_total = None;
         
         negotiation.status = NegotiationStatus::Created;
         negotiation.result = MatchResult::Pending;
@@ -64,6 +66,7 @@ pub mod river {
         base: u64,
         bonus: u64,
         equity: u64,
+        total: u64,
     ) -> Result<()> {
         let negotiation = &mut ctx.accounts.negotiation;
         
@@ -80,6 +83,7 @@ pub mod river {
         negotiation.employer_base = Some(base);
         negotiation.employer_bonus = Some(bonus);
         negotiation.employer_equity = Some(equity);
+        negotiation.employer_total = Some(total);
         
         // Check if we can determine result
         check_and_update_result(negotiation)?;
@@ -95,6 +99,7 @@ pub mod river {
         base: u64,
         bonus: u64,
         equity: u64,
+        total: u64,
     ) -> Result<()> {
         let negotiation = &mut ctx.accounts.negotiation;
         
@@ -111,6 +116,7 @@ pub mod river {
         negotiation.candidate_base = Some(base);
         negotiation.candidate_bonus = Some(bonus);
         negotiation.candidate_equity = Some(equity);
+        negotiation.candidate_total = Some(total);
         
         // Check if we can determine result
         check_and_update_result(negotiation)?;
@@ -134,10 +140,12 @@ pub mod river {
         negotiation.employer_base = None;
         negotiation.employer_bonus = None;
         negotiation.employer_equity = None;
+        negotiation.employer_total = None;
         
         negotiation.candidate_base = None;
         negotiation.candidate_bonus = None;
         negotiation.candidate_equity = None;
+        negotiation.candidate_total = None;
         
         negotiation.status = NegotiationStatus::Finalized;
         
@@ -153,15 +161,15 @@ pub mod river {
 /// Check if both parties have submitted and determine the result
 fn check_and_update_result(negotiation: &mut Account<Negotiation>) -> Result<()> {
     if let (
-        Some(emp_base), Some(emp_bonus), Some(emp_equity),
-        Some(cand_base), Some(cand_bonus), Some(cand_equity)
+        Some(emp_base), Some(emp_bonus), Some(emp_equity), Some(emp_total),
+        Some(cand_base), Some(cand_bonus), Some(cand_equity), Some(cand_total)
     ) = (
-        negotiation.employer_base, negotiation.employer_bonus, negotiation.employer_equity,
-        negotiation.candidate_base, negotiation.candidate_bonus, negotiation.candidate_equity
+        negotiation.employer_base, negotiation.employer_bonus, negotiation.employer_equity, negotiation.employer_total,
+        negotiation.candidate_base, negotiation.candidate_bonus, negotiation.candidate_equity, negotiation.candidate_total
     ) {
         // Calculate totals
-        let emp_total = emp_base.saturating_add(emp_bonus).saturating_add(emp_equity);
-        let cand_total = cand_base.saturating_add(cand_bonus).saturating_add(cand_equity);
+        // Use explicit totals
+
 
         // Core comparison logic
         let base_match = cand_base <= emp_base;
@@ -286,11 +294,13 @@ pub struct Negotiation {
     pub employer_base: Option<u64>,
     pub employer_bonus: Option<u64>,
     pub employer_equity: Option<u64>,
+    pub employer_total: Option<u64>,
     
     // Candidate components (Cleared before L1 commit)
     pub candidate_base: Option<u64>,
     pub candidate_bonus: Option<u64>,
     pub candidate_equity: Option<u64>,
+    pub candidate_total: Option<u64>,
     
     pub status: NegotiationStatus,
     pub result: MatchResult,
@@ -306,10 +316,12 @@ impl Negotiation {
         (1 + 8) +              // employer_base (Option<u64>)
         (1 + 8) +              // employer_bonus
         (1 + 8) +              // employer_equity
+        (1 + 8) +              // employer_total
         // Candidate components
         (1 + 8) +              // candidate_base (Option<u64>)
         (1 + 8) +              // candidate_bonus
         (1 + 8) +              // candidate_equity
+        (1 + 8) +              // candidate_total
         1 +                    // status
         1 +                    // result
         (1 + MatchDetails::LEN); // match_details (Option<MatchDetails>)

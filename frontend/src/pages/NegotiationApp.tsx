@@ -188,7 +188,7 @@ export function NegotiationApp() {
     }, [connected, publicKey, loadNegotiation, getClient]);
 
     // Handle employer budget submission
-    const handleEmployerSubmit = useCallback(async (base: number, bonus: number, equity: number) => {
+    const handleEmployerSubmit = useCallback(async (base: number, bonus: number, equity: number, total: number) => {
         if (!connected || !publicKey || !negotiationId) {
             setError('Please connect first');
             return;
@@ -201,7 +201,7 @@ export function NegotiationApp() {
             const client = getClient();
             if (!client) throw new Error('Client not initialized');
 
-            const tx = await client.submitEmployerBudget(negotiationId, base, bonus, equity);
+            const tx = await client.submitEmployerBudget(negotiationId, base, bonus, equity, total);
             setTxSignature(tx);
 
             // Reload negotiation data
@@ -242,7 +242,7 @@ export function NegotiationApp() {
     }, [connected, publicKey, negotiationId, loadNegotiation, getClient]);
 
     // Handle candidate requirement submission
-    const handleCandidateSubmit = useCallback(async (base: number, bonus: number, equity: number) => {
+    const handleCandidateSubmit = useCallback(async (base: number, bonus: number, equity: number, total: number) => {
         if (!connected || !publicKey || !negotiationId) {
             setError('Please connect first');
             return;
@@ -255,7 +255,7 @@ export function NegotiationApp() {
             const client = getClient();
             if (!client) throw new Error('Client not initialized');
 
-            const tx = await client.submitCandidateRequirement(negotiationId, base, bonus, equity);
+            const tx = await client.submitCandidateRequirement(negotiationId, base, bonus, equity, total);
             setTxSignature(tx);
 
             // Reload negotiation data

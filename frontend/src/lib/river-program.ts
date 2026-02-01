@@ -52,6 +52,7 @@ const IDL: any = {
         { name: 'base', type: 'u64' },
         { name: 'bonus', type: 'u64' },
         { name: 'equity', type: 'u64' },
+        { name: 'total', type: 'u64' },
       ],
     },
     {
@@ -64,6 +65,7 @@ const IDL: any = {
         { name: 'base', type: 'u64' },
         { name: 'bonus', type: 'u64' },
         { name: 'equity', type: 'u64' },
+        { name: 'total', type: 'u64' },
       ],
     },
     {
@@ -88,10 +90,12 @@ const IDL: any = {
           { name: 'employerBase', type: { option: 'u64' } },
           { name: 'employerBonus', type: { option: 'u64' } },
           { name: 'employerEquity', type: { option: 'u64' } },
+          { name: 'employerTotal', type: { option: 'u64' } },
 
           { name: 'candidateBase', type: { option: 'u64' } },
           { name: 'candidateBonus', type: { option: 'u64' } },
           { name: 'candidateEquity', type: { option: 'u64' } },
+          { name: 'candidateTotal', type: { option: 'u64' } },
 
           { name: 'status', type: { defined: 'NegotiationStatus' } },
           { name: 'result', type: { defined: 'MatchResult' } },
@@ -160,10 +164,12 @@ export interface NegotiationAccount {
   employerBase: BN | null;
   employerBonus: BN | null;
   employerEquity: BN | null;
+  employerTotal: BN | null;
 
   candidateBase: BN | null;
   candidateBonus: BN | null;
   candidateEquity: BN | null;
+  candidateTotal: BN | null;
 
   status: { created?: object; ready?: object; employerSubmitted?: object; candidateSubmitted?: object; complete?: object; finalized?: object };
   result: { pending?: object; match?: object; noMatch?: object };
@@ -476,7 +482,8 @@ export class RiverClient {
     negotiationId: BN,
     base: number,
     bonus: number,
-    equity: number
+    equity: number,
+    total: number
   ): Promise<string> {
     const [pda] = getNegotiationPDA(negotiationId);
 
@@ -494,7 +501,7 @@ export class RiverClient {
     const useTee = this.isTeeAvailable() && this.isAccountDelegated(pda);
     const program = this.getProgram(useTee);
 
-    const total = base + bonus + equity;
+    // const total = base + bonus + equity; // Use explicit total argument
 
     if (useTee) {
       console.log('🔒 Submitting employer budget via TEE (confidential - values encrypted)');
@@ -505,7 +512,7 @@ export class RiverClient {
     }
 
     const tx = await program.methods
-      .submitEmployerBudget(new BN(base), new BN(bonus), new BN(equity))
+      .submitEmployerBudget(new BN(base), new BN(bonus), new BN(equity), new BN(total))
       .accounts({
         negotiation: pda,
         employer: this.wallet.publicKey,
@@ -520,7 +527,8 @@ export class RiverClient {
     negotiationId: BN,
     base: number,
     bonus: number,
-    equity: number
+    equity: number,
+    total: number
   ): Promise<string> {
     const [pda] = getNegotiationPDA(negotiationId);
 
@@ -538,7 +546,7 @@ export class RiverClient {
     const useTee = this.isTeeAvailable() && this.isAccountDelegated(pda);
     const program = this.getProgram(useTee);
 
-    const total = base + bonus + equity;
+    // const total = base + bonus + equity; // Use explicit total argument
 
     if (useTee) {
       console.log('🔒 Submitting candidate requirement via TEE (confidential - values encrypted)');
@@ -549,7 +557,7 @@ export class RiverClient {
     }
 
     const tx = await program.methods
-      .submitCandidateRequirement(new BN(base), new BN(bonus), new BN(equity))
+      .submitCandidateRequirement(new BN(base), new BN(bonus), new BN(equity), new BN(total))
       .accounts({
         negotiation: pda,
         candidate: this.wallet.publicKey,

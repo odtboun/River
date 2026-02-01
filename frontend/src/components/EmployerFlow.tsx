@@ -12,7 +12,7 @@ interface EmployerFlowProps {
   teeActive?: boolean;
   isBurnerWallet?: boolean;
   onCreateNegotiation: () => Promise<void>;
-  onSubmit: (base: number, bonus: number, equity: number) => Promise<void>;
+  onSubmit: (base: number, bonus: number, equity: number, total: number) => Promise<void>;
   onReset: () => void;
   // Make matchDetails optional in negotiation data or passed explicitly if simpler
   matchDetails?: {
@@ -80,7 +80,7 @@ export function EmployerFlow({
       // Basic mode: Base only (or treated as base)
       const val = parseInt(baseSalary);
       if (val > 0) {
-        await onSubmit(val, 0, 0);
+        await onSubmit(val, 0, 0, val);
       }
     } else {
       // Custom mode
@@ -89,7 +89,8 @@ export function EmployerFlow({
       const equityVal = parseInt(equity) || 0;
 
       if (baseVal > 0 || bonusVal > 0 || equityVal > 0) {
-        await onSubmit(baseVal, bonusVal, equityVal);
+        const totalVal = parseInt(total.replace(/,/g, '')) || 0;
+        await onSubmit(baseVal, bonusVal, equityVal, totalVal);
       }
     }
   }, [baseSalary, bonus, equity, isCustomMode, onSubmit]);

@@ -19,7 +19,7 @@ interface CandidateFlowProps {
     totalMatch: boolean;
   } | null;
   onJoin: () => Promise<void>;
-  onSubmit: (base: number, bonus: number, equity: number) => Promise<void>;
+  onSubmit: (base: number, bonus: number, equity: number, total: number) => Promise<void>;
   onReset: () => void;
 }
 
@@ -78,7 +78,7 @@ export function CandidateFlow({
       const value = parseInt(baseSalary);
       if (value > 0) {
         // For basic mode, bonus and equity are 0
-        await onSubmit(value, 0, 0);
+        await onSubmit(value, 0, 0, value);
       }
     } else {
       // Complex mode
@@ -87,7 +87,8 @@ export function CandidateFlow({
       const equityVal = parseInt(equity) || 0;
 
       if (baseVal > 0 || bonusVal > 0 || equityVal > 0) {
-        await onSubmit(baseVal, bonusVal, equityVal);
+        const totalVal = parseInt(total.replace(/,/g, '')) || 0;
+        await onSubmit(baseVal, bonusVal, equityVal, totalVal);
       }
     }
   }, [baseSalary, bonus, equity, isBasicMode, onSubmit]);
