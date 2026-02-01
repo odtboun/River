@@ -22,45 +22,50 @@ export function MarketingHome() {
             fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
         }}>
             {/* Navigation */}
+            {/* Navigation */}
             <nav className="nav" style={{
                 position: 'fixed',
                 top: 0, left: 0, right: 0,
                 transform: showNav ? 'translateY(0)' : 'translateY(-100%)',
                 transition: 'transform 0.3s ease-in-out',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '1.5rem 2rem',
-                maxWidth: '1200px',
-                margin: '0 auto',
                 width: '100%',
                 borderBottom: '1px solid #f3f4f6',
                 zIndex: 50,
                 background: 'rgba(255,255,255,0.9)',
                 backdropFilter: 'blur(8px)'
             }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <img src="/river.svg" alt="River" style={{ width: '30px', height: '30px' }} />
-                    <span style={{ fontSize: '1.25rem', fontWeight: 600, letterSpacing: '-0.025em', color: '#111827' }}>River</span>
-                </div>
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '1.5rem 2rem',
+                    maxWidth: '1200px',
+                    margin: '0 auto',
+                    width: '100%'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <img src="/river.svg" alt="River" style={{ width: '30px', height: '30px' }} />
+                        <span style={{ fontSize: '1.25rem', fontWeight: 600, letterSpacing: '-0.025em', color: '#111827' }}>River</span>
+                    </div>
 
-                <Link
-                    to="/app"
-                    className="btn"
-                    style={{
-                        background: '#18181b', // Zinc-900
-                        color: '#fff',
-                        fontWeight: 500,
-                        padding: '0.625rem 1.25rem',
-                        borderRadius: '8px',
-                        fontSize: '0.9375rem',
-                        textDecoration: 'none',
-                        transition: 'background 0.2s',
-                        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
-                    }}
-                >
-                    Launch App
-                </Link>
+                    <Link
+                        to="/app"
+                        className="btn"
+                        style={{
+                            background: '#18181b', // Zinc-900
+                            color: '#fff',
+                            fontWeight: 500,
+                            padding: '0.625rem 1.25rem',
+                            borderRadius: '8px',
+                            fontSize: '0.9375rem',
+                            textDecoration: 'none',
+                            transition: 'background 0.2s',
+                            boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+                        }}
+                    >
+                        Launch App
+                    </Link>
+                </div>
             </nav>
 
             {/* Hero Section */}
