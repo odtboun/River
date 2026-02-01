@@ -74,10 +74,17 @@ export function NegotiationApp() {
         }
     }, [connected, anchorWallet, signMessage, isBurnerWallet]);
 
-    // Check URL for negotiation ID on load
+    const [activeFields, setActiveFields] = useState<string[]>(['base']);
+
+    // Check URL for negotiation ID and active fields on load
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const idParam = params.get('n');
+        const fieldsParam = params.get('fields');
+
+        if (fieldsParam) {
+            setActiveFields(fieldsParam.split(','));
+        }
 
         if (idParam) {
             try {
@@ -91,6 +98,28 @@ export function NegotiationApp() {
             }
         }
     }, []);
+
+    // ... existing loadNegotiation ...
+
+    // ... inside render ...
+    {
+        view === 'candidate' && (
+            <CandidateFlow
+                connected={connected}
+                negotiation={negotiation}
+                negotiationId={negotiationId}
+                loading={loading}
+                txSignature={txSignature}
+                teeActive={teeStatus === 'connected'}
+                isBurnerWallet={isBurnerWallet}
+                onJoin={handleJoinNegotiation}
+                onSubmit={handleCandidateSubmit}
+                onReset={handleReset}
+                walletAddress={publicKey?.toBase58() || null}
+                activeFields={activeFields}
+            />
+        )
+    }
 
     // Load negotiation from chain
     const loadNegotiation = useCallback(async (id: BN) => {
@@ -357,6 +386,7 @@ export function NegotiationApp() {
                         onSubmit={handleCandidateSubmit}
                         onReset={handleReset}
                         walletAddress={publicKey?.toBase58() || null}
+                        activeFields={activeFields}
                     />
                 )}
             </main>
