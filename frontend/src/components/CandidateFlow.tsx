@@ -11,6 +11,7 @@ interface CandidateFlowProps {
   teeActive?: boolean;
   isBurnerWallet?: boolean;
   walletAddress: string | null;
+  activeFields?: string[];
   onJoin: () => Promise<void>;
   onSubmit: (minSalary: number) => Promise<void>;
   onReset: () => void;
@@ -25,6 +26,7 @@ export function CandidateFlow({
   teeActive = false,
   isBurnerWallet = false,
   walletAddress,
+  activeFields = ['base'],
   onJoin,
   onSubmit,
   onReset
